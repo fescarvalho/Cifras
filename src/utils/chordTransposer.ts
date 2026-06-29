@@ -1,0 +1,192 @@
+// Chromatic scales
+const SHARPS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const FLATS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+// Map to get semitone values (0-11)
+const NOTE_TO_SEMITONE: { [key: string]: number } = {
+  'C': 0, 'C#': 1, 'Db': 1,
+  'D': 2, 'D#': 3, 'Eb': 3,
+  'E': 4,
+  'F': 5, 'F#': 6, 'Gb': 6,
+  'G': 7, 'G#': 8, 'Ab': 8,
+  'A': 9, 'A#': 10, 'Bb': 10,
+  'B': 11
+};
+
+// Strict Chord Regex
+// Matches root (A-G with optional # or b), optional quality, optional extensions, optional modifiers in parens, and optional slash bass note
+const CHORD_REGEX = /^[A-G](?:#|b)?(?:m|M|maj|min|dim|aug|sus|add|no)?\d*(?:b5|#5|b9|#9)?(?:\([^)]+\))?(?:\/[A-G](?:#|b)?)?$/;
+
+/**
+ * Checks if a single string token is a valid chord or structural chord-line token.
+ */
+export function isChordToken(token: string): boolean {
+  const clean = token.trim();
+  if (!clean) return false;
+  // Allow structural symbols often found in chord lines
+  if (/^[|:\-\[\]()+]+$/.test(clean)) return true;
+  return CHORD_REGEX.test(clean);
+}
+
+/**
+ * Checks if a line contains predominantly chords and spaces.
+ */
+export function isChordLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+
+  // Split line by whitespace to analyze tokens
+  const tokens = trimmed.split(/\s+/);
+  
+  let chordCount = 0;
+  let invalidCount = 0;
+
+  for (const token of tokens) {
+    if (isChordToken(token)) {
+      // Exclude structural tokens from contributing to chordCount if they are alone,
+      // but they don't count as invalid either.
+      if (!/^[|:\-\[\]()+]+$/.test(token)) {
+        chordCount++;
+      }
+    } else {
+      invalidCount++;
+    }
+  }
+
+  // A chord line must have at least one chord and no invalid words
+  return chordCount > 0 && invalidCount === 0;
+}
+
+/**
+ * Transposes a single note by a given number of semitones, outputting in the preferred accidental scale.
+ */
+function transposeNote(note: string, semitones: number, preferredScale: string[]): string {
+  const currentSemitone = NOTE_TO_SEMITONE[note];
+  if (currentSemitone === undefined) return note;
+
+  let newSemitone = (currentSemitone + semitones) % 12;
+  if (newSemitone < 0) {
+    newSemitone += 12;
+  }
+
+  return preferredScale[newSemitone];
+}
+
+/**
+ * Transposes a single chord string (e.g., C#m7, G/B) by a given number of semitones.
+ */
+export function transposeChord(chord: string, semitones: number, preferredScale: string[]): string {
+  if (semitones === 0) return chord;
+
+  // Check if it's a slash chord (e.g., G/B)
+  const parts = chord.split('/');
+  
+  const transposeRoot = (c: string): string => {
+    // Match root note: letter A-G, optionally followed by # or b
+    const match = c.match(/^([A-G](?:#|b)?)(.*)$/);
+    if (!match) return c;
+    const [, root, extension] = match;
+    const transposedRoot = transposeNote(root, semitones, preferredScale);
+    return transposedRoot + extension;
+  };
+
+  const transposedMain = transposeRoot(parts[0]);
+  if (parts.length > 1) {
+    const bassNote = parts[1];
+    // The bass note is just a note (e.g., B, F#)
+    const transposedBass = transposeNote(bassNote, semitones, preferredScale);
+    return `${transposedMain}/${transposedBass}`;
+  }
+
+  return transposedMain;
+}
+
+/**
+ * Analyzes the song content to decide if sharps or flats are preferred.
+ * Count occurrences of flat notes vs sharp notes.
+ */
+export function getPreferredScale(content: string): string[] {
+  let sharpCount = 0;
+  let flatCount = 0;
+
+  // Simple scan of entire content for flat/sharp patterns
+  const lines = content.split('\n');
+  for (const line of lines) {
+    if (isChordLine(line)) {
+      const tokens = line.trim().split(/\s+/);
+      for (const token of tokens) {
+        if (CHORD_REGEX.test(token)) {
+          // Check for sharp/flat in the root or bass note
+          if (/[A-G]#/.test(token)) sharpCount++;
+          if (/[A-G]b/.test(token)) flatCount++;
+        }
+      }
+    }
+  }
+
+  return flatCount > sharpCount ? FLATS : SHARPS;
+}
+
+/**
+ * Transposes a single line, maintaining spacing if it is a chord line.
+ */
+export function transposeLine(line: string, semitones: number, preferredScale: string[]): string {
+  if (!isChordLine(line) || semitones === 0) {
+    return line;
+  }
+
+  // Match all non-whitespace tokens along with their starting indices
+  const tokenRegex = /\S+/g;
+  let match;
+  const tokens: { text: string; index: number }[] = [];
+
+  while ((match = tokenRegex.exec(line)) !== null) {
+    tokens.push({
+      text: match[0],
+      index: match.index
+    } as any);
+  }
+
+  let outputLine = '';
+  let lastOutputEnd = 0;
+
+  for (const token of tokens) {
+    // Determine the transposed text
+    const transposedText = /^[|:\-\[\]()+]+$/.test(token.text)
+      ? token.text
+      : transposeChord(token.text, semitones, preferredScale);
+
+    // Calculate spaces needed to maintain alignment
+    let spacesNeeded = token.index - lastOutputEnd;
+    if (spacesNeeded < 0) {
+      spacesNeeded = 1; // Overlap prevention: force at least one space
+    }
+
+    outputLine += ' '.repeat(spacesNeeded) + transposedText;
+    lastOutputEnd = outputLine.length;
+  }
+
+  // Preserve leading spaces from the original line if any
+  const leadingSpacesCount = line.length - line.trimStart().length;
+  if (leadingSpacesCount > 0 && !outputLine.startsWith(' '.repeat(leadingSpacesCount))) {
+    const diff = leadingSpacesCount - (outputLine.length - outputLine.trimStart().length);
+    if (diff > 0) {
+      outputLine = ' '.repeat(diff) + outputLine;
+    }
+  }
+
+  return outputLine;
+}
+
+/**
+ * Transposes all chord lines in a full song content string.
+ */
+export function transposeSongContent(content: string, semitones: number): string {
+  if (semitones === 0) return content;
+  
+  const preferredScale = getPreferredScale(content);
+  const lines = content.split('\n');
+  const transposedLines = lines.map(line => transposeLine(line, semitones, preferredScale));
+  
+  return transposedLines.join('\n');
+}

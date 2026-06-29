@@ -1,0 +1,65 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+enum LiturgicalPart {
+  ENTRADA
+  PERDAO
+  GLORIA
+  ACLAMACAO
+  OFERTORIO
+  SANTO
+  RESPOSTAS_EUCARISTICAS
+  AMEM
+  CORDEIRO
+  COMUNHAO
+  ACAO_DE_GRACAS
+  CANTO_FINAL
+  ESPECIAL
+}
+
+enum LiturgicalSeason {
+  ADVENTO
+  NATAL
+  QUARESMA
+  TEMPO_COMUM
+  PASCOA
+}
+
+model Song {
+  id          String            @id @default(cuid())
+  title       String
+  artist      String
+  originalKey String
+  content     String            // Contains chord sheet
+  part        LiturgicalPart
+  season      LiturgicalSeason? // Optional (can be general/any season)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  setlists    SetlistSong[]
+}
+
+model Setlist {
+  id        String        @id @default(cuid())
+  title     String
+  date      DateTime
+  songs     SetlistSong[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model SetlistSong {
+  id        String   @id @default(cuid())
+  setlistId String
+  songId    String
+  order     Int
+  setlist   Setlist  @relation(fields: [setlistId], references: [id], onDelete: Cascade)
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([setlistId, songId])
+}
