@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-const pdfParse = require('pdf-parse');
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +20,8 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Usa a biblioteca para extrair o texto
+    const pdfParseModule = await import('pdf-parse');
+    const pdfParse = (pdfParseModule as any).default || pdfParseModule;
     const pdfData = await pdfParse(buffer);
     const rawText = pdfData.text;
 
