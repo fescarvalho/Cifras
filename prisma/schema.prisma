@@ -9,6 +9,7 @@ generator client {
 
 enum LiturgicalPart {
   ENTRADA
+  SALMO
   PERDAO
   GLORIA
   ACLAMACAO

@@ -11,6 +11,7 @@
 
 export const LiturgicalPart = {
   ENTRADA: 'ENTRADA',
+  SALMO: 'SALMO',
   PERDAO: 'PERDAO',
   GLORIA: 'GLORIA',
   ACLAMACAO: 'ACLAMACAO',

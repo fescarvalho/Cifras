@@ -2,6 +2,7 @@ import { LiturgicalPart, LiturgicalSeason } from "@/generated/prisma/client";
 
 export const PART_LABELS: Record<LiturgicalPart, string> = {
   ENTRADA: "Entrada",
+  SALMO: "Salmo",
   PERDAO: "Perdão",
   GLORIA: "Glória",
   ACLAMACAO: "Aclamação",
@@ -18,6 +19,7 @@ export const PART_LABELS: Record<LiturgicalPart, string> = {
 
 export const PART_COLORS: Record<LiturgicalPart, string> = {
   ENTRADA: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/50",
+  SALMO: "bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400 border-orange-100 dark:border-orange-900/50",
   PERDAO: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-100 dark:border-amber-900/50",
   GLORIA: "bg-yellow-50 text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-400 border-yellow-100 dark:border-yellow-900/50",
   ACLAMACAO: "bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-400 border-sky-100 dark:border-sky-900/50",

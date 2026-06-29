@@ -270,3 +270,53 @@ export async function deleteSetlist(id: string) {
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Saves a complete mass (setlist + songs) from a PDF import.
+ */
+export async function saveMassFromImport(data: {
+  title: string;
+  dateStr: string;
+  songs: { title: string; content: string; part: LiturgicalPart }[];
+}) {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create the setlist
+      const setlist = await tx.setlist.create({
+        data: {
+          title: data.title,
+          date: new Date(data.dateStr),
+        },
+      });
+
+      // 2. Create songs and link them
+      for (let i = 0; i < data.songs.length; i++) {
+        const s = data.songs[i];
+        const newSong = await tx.song.create({
+          data: {
+            title: s.title || `Música ${i + 1}`,
+            artist: "Desconhecido", // Default for imported
+            originalKey: "C", // Default key
+            content: s.content,
+            part: s.part,
+          },
+        });
+
+        await tx.setlistSong.create({
+          data: {
+            setlistId: setlist.id,
+            songId: newSong.id,
+            order: i + 1,
+          },
+        });
+      }
+      return setlist;
+    });
+
+    revalidatePath("/");
+    return { success: true, setlist: result };
+  } catch (error: any) {
+    console.error("Failed to save mass from import:", error);
+    return { success: false, error: error.message };
+  }
+}
