@@ -27,6 +27,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
   const [error, setError] = useState("");
   const [isPerformanceMode, setIsPerformanceMode] = useState(false);
   const [activePerformanceSongIdx, setActivePerformanceSongIdx] = useState(0);
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
 
   const loadSetlistDetails = async () => {
     setLoading(true);
@@ -260,8 +261,12 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
                   <span className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 w-5">
                     {index + 1}
                   </span>
-                  <div className="min-w-0">
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+                  <div
+                    onClick={() => setSelectedSong(s.song)}
+                    className="min-w-0 cursor-pointer group/title"
+                    title="Clique para ver a cifra"
+                  >
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate group-hover/title:text-violet-600 dark:group-hover/title:text-violet-400 group-hover/title:underline decoration-violet-500/30">
                       {s.song.title}
                     </h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{s.song.artist}</p>
@@ -309,6 +314,19 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
               </div>
             ))}
           </div>
+        </div>
+      )}
+      {/* Song Viewer Fullscreen Overlay Modal */}
+      {selectedSong && (
+        <div className="fixed inset-0 z-50 bg-slate-50 dark:bg-slate-950">
+          <SongViewer
+            song={selectedSong}
+            onClose={() => {
+              setSelectedSong(null);
+              loadSetlistDetails();
+            }}
+            showBackButton={true}
+          />
         </div>
       )}
     </div>

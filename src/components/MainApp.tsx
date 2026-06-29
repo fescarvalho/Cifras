@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { Song, Setlist } from "@/generated/prisma/client";
 import SongFilters from "./SongFilters";
 import SongViewer from "./SongViewer";
@@ -158,6 +159,17 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
               )}
             </button>
 
+            {/* Link to Repertórios */}
+            <Link
+              href="/repertorios"
+              className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-350 font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+            >
+              <svg className="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+              Repertórios
+            </Link>
+
             {/* Quick Action Button */}
             <button
               onClick={() => setShowCreateSong(true)}
@@ -173,10 +185,10 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
       </header>
 
       {/* Main layout container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <main className="flex-1 max-w-5xl w-full mx-auto p-4 md:p-8 flex flex-col gap-6">
         
-        {/* Left Column: catalog (cols-7) */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
+        {/* catalog */}
+        <div className="flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-slate-900 dark:text-slate-50 flex items-center gap-2">
               Catalogar Músicas
@@ -234,72 +246,6 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: setlists (cols-5) */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
-          {selectedSetlistId ? (
-            <SetlistManager
-              setlistId={selectedSetlistId}
-              onClose={() => setSelectedSetlistId("")}
-              onRefreshSetlists={refreshData}
-            />
-          ) : (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-sm flex flex-col gap-5">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/80">
-                <h2 className="text-lg font-bold text-slate-950 dark:text-slate-50 flex items-center gap-2">
-                  Repertórios (Missas)
-                </h2>
-                <button
-                  onClick={() => setShowCreateSetlist(true)}
-                  className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-violet-600 dark:text-violet-400 text-xs font-semibold py-2 px-3.5 rounded-xl transition-all active:scale-95"
-                >
-                  Novo Repertório
-                </button>
-              </div>
-
-              {setlists.length === 0 ? (
-                <div className="text-center p-8 text-slate-400 dark:text-slate-500">
-                  <p className="text-xs">Nenhum repertório de missa cadastrado.</p>
-                  <p className="text-[10px] mt-1">Crie um novo repertório para organizar as músicas da celebração.</p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {setlists.map((s) => (
-                    <div
-                      key={s.id}
-                      onClick={() => setSelectedSetlistId(s.id)}
-                      className="group flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 border border-slate-205/60 dark:border-slate-850 rounded-2xl hover:border-violet-500/50 dark:hover:border-violet-500/50 cursor-pointer transition-all hover:shadow-sm"
-                    >
-                      <div className="min-w-0 pr-2">
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-violet-600 transition-colors">
-                          {s.title}
-                        </h3>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          {new Date(s.date).toLocaleDateString("pt-BR")} • {s.songs?.length || 0} música(s)
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={(e) => handleDeleteSetlist(s.id, e)}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-md transition-all"
-                          title="Excluir repertório"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                        <svg className="w-5 h-5 text-slate-400 group-hover:text-violet-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
         </div>

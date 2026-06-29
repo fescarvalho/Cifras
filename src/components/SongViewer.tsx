@@ -137,7 +137,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
               <div className="px-4 py-1 text-xs md:text-sm font-mono font-bold text-center min-w-[70px]">
                 {currentKey}
                 {semitones !== 0 && (
-                  <span className="text-xs block text-violet-500">
+                  <span className="text-xs block text-orange-500">
                     {semitones > 0 ? `+${semitones}` : semitones}
                   </span>
                 )}
@@ -236,7 +236,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
               return (
                 <div
                   key={line.key}
-                  className="font-mono font-bold text-violet-600 dark:text-violet-400 select-all whitespace-pre leading-none pb-1 pt-2"
+                  className="font-mono font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre leading-none pb-1 pt-2"
                   style={{ letterSpacing: "normal" }}
                 >
                   {line.content}
