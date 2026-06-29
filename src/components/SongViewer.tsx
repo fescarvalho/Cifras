@@ -215,7 +215,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
       {/* Chords rendering sheet */}
       <div className="flex-1 overflow-y-auto px-4 py-6 md:py-10">
         <div 
-          className="max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-10 shadow-sm leading-relaxed"
+          className="max-w-4xl w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 md:p-10 shadow-sm leading-relaxed overflow-x-auto"
           style={{ fontSize: `${fontSize}px` }}
         >
           {renderedLines.map((line) => {
