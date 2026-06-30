@@ -195,7 +195,7 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
 
             {/* Quick Action Button (Hidden on mobile) */}
             <button
-              onClick={() => setShowCreateSong(true)}
+              onClick={() => setShowActionSheet(true)}
               className="hidden md:flex bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm items-center gap-1.5 transition-all shadow-md shadow-violet-500/10 active:scale-95"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
