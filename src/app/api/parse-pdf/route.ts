@@ -48,6 +48,7 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(arrayBuffer);
 
     // pdf-parse v2: buffer passado como opção `data` no construtor
+    require('pdf-parse/worker');
     const { PDFParse } = require('pdf-parse');
     const parser = new PDFParse({ data: buffer, verbosity: -1 });
     await parser.load();
