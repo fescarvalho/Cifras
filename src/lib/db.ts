@@ -1,17 +1,19 @@
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import pg from "pg";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient | undefined };
 
 function createPrismaClient() {
-  const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+  // Prefer DATABASE_URL (PgBouncer) for Vercel serverless compatibility.
+  // Use a single pg.Pool (not layered on top of PgBouncer's own pooling).
+  const connectionString = process.env.DATABASE_URL ?? process.env.DIRECT_URL;
 
-  const pool = new Pool({
+  const pool = new pg.Pool({
     connectionString,
-    max: 5,
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 10_000,
+    max: 2,
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 15_000,
   });
 
   pool.on("error", (err) => {
