@@ -23,7 +23,7 @@ const NOTE_TO_SEMITONE: { [key: string]: number } = {
  * - Slash / inverted bass: /A, /F#, /Cb
  */
 const CHORD_REGEX =
-  /^[A-G](?:#|b)?(?:(?:maj|min|aug|dim|sus|add)(?:\d{1,2})?|[mM])?(?:\d{1,2})?(?:(?:b|#)(?:5|9|11|13))*(?:\([^)]{1,10}\))?(?:\/[A-G](?:#|b)?)?$/;
+  /^\(?[A-G](?:#|b)?(?:(?:maj|min|aug|dim|sus|add)(?:\d{1,2})?|[mMº°\+])?(?:\d{1,2}\+?)?(?:(?:b|#)(?:5|9|11|13))*(?:\([^)]{1,10}\))?(?:\/[A-G](?:#|b)?)?\)?$/;
 
 /** Tokens that are structural separators and do not count as chords or invalid words. */
 const STRUCTURAL_RE = /^[|:\-\[\]()+\/]+$/;
@@ -46,6 +46,8 @@ export function sanitizePdfText(text: string): string {
       .replace(/\\(#|b|[A-Za-z])/g, '$1')
       // Remove lone backslashes
       .replace(/\\/g, '')
+      // Normalize en-dashes (–) and em-dashes (—) to standard hyphens
+      .replace(/[\u2013\u2014]/g, '-')
       // Normalize non-breaking spaces to regular spaces
       .replace(/[\u00A0\u202F\u2009]/g, ' ')
       // Collapse sequences of spaces/tabs to a single space per position (preserve newlines)
@@ -84,8 +86,9 @@ export function isChordLine(line: string): boolean {
   if (!trimmed) return false;
 
   // Remove all structural separators so they don't pollute the token list
-  // Keeps letters, digits, #, b (accidentals) — the core chord characters
-  const stripped = trimmed.replace(/[\s|\-:()+.]+/g, ' ').trim();
+  // Keeps letters, digits, #, b, +, (, ) — the core chord characters
+  // Included en-dash (–) and em-dash (—) commonly found in copy-pasted texts.
+  const stripped = trimmed.replace(/[\s|\-–—:.]+/g, ' ').trim();
   if (!stripped) return false;
 
   const tokens = stripped.split(/\s+/).filter(Boolean);

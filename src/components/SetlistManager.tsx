@@ -128,32 +128,31 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-slate-950 text-slate-100">
         {/* Performance Top Bar */}
-        <div className="bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsPerformanceMode(false)}
-              className="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-slate-200"
-              title="Sair do Modo de Execução"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div>
-              <span className="text-xs uppercase font-bold tracking-wider text-violet-400">
-                Modo de Missa ({activePerformanceSongIdx + 1} de {songs.length})
-              </span>
-              <h2 className="text-lg font-bold truncate max-w-[200px] md:max-w-md">{setlist.title}</h2>
-            </div>
+        <div className="bg-slate-900 border-b border-slate-800 p-3 md:p-4 flex items-center gap-3">
+          <button
+            onClick={() => setIsPerformanceMode(false)}
+            className="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-slate-200 shrink-0"
+            title="Sair do Modo de Execução"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <div className="hidden md:block shrink-0">
+            <span className="text-xs uppercase font-bold tracking-wider text-violet-400">
+              Modo de Missa ({activePerformanceSongIdx + 1} de {songs.length})
+            </span>
+            <h2 className="text-lg font-bold truncate max-w-[200px] lg:max-w-xs">{setlist.title}</h2>
           </div>
 
           {/* Quick select buttons */}
-          <div className="flex items-center gap-1.5 overflow-x-auto max-w-[40%] md:max-w-lg p-1 bg-slate-950 rounded-lg">
+          <div className="flex-1 flex items-center gap-1.5 overflow-x-auto p-1 bg-slate-950 rounded-lg min-w-0">
             {songs.map((s, idx) => (
               <button
                 key={s.id}
                 onClick={() => setActivePerformanceSongIdx(idx)}
-                className={`text-[10px] md:text-xs font-semibold px-2.5 py-1.5 rounded transition-all whitespace-nowrap ${
+                className={`text-[10px] md:text-xs font-semibold px-3 py-2 rounded-md transition-all whitespace-nowrap shrink-0 ${
                   idx === activePerformanceSongIdx
                     ? "bg-violet-600 text-white font-bold"
                     : "bg-slate-900 text-slate-400 hover:bg-slate-850"

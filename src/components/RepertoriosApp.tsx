@@ -6,15 +6,20 @@ import { Setlist } from "@/generated/prisma/client";
 import { getSetlists, deleteSetlist } from "@/app/actions";
 import SetlistManager from "./SetlistManager";
 import CreateSetlistModal from "./CreateSetlistModal";
+import BottomNav from "./BottomNav";
+import ActionSheet from "./ActionSheet";
+import { useRouter } from "next/navigation";
 
 interface RepertoriosAppProps {
   initialSetlists: Setlist[];
 }
 
 export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps) {
+  const router = useRouter();
   const [setlists, setSetlists] = useState<any[]>(initialSetlists);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showCreateSetlist, setShowCreateSetlist] = useState(false);
+  const [showActionSheet, setShowActionSheet] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
   // Initialize theme
@@ -116,33 +121,22 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
               )}
             </button>
 
-            {/* Import PDF Link */}
-            <Link
-              href="/repertorios/importar"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm flex items-center gap-1.5 transition-all shadow-md shadow-indigo-500/10 active:scale-95"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              <span className="hidden sm:inline">Importar PDF</span>
-            </Link>
-
-            {/* Create Setlist Button */}
+            {/* Quick Action Button (Hidden on mobile) */}
             <button
               onClick={() => setShowCreateSetlist(true)}
-              className="bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm flex items-center gap-1.5 transition-all shadow-md shadow-violet-500/10 active:scale-95"
+              className="hidden md:flex bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm items-center gap-1.5 transition-all shadow-md shadow-violet-500/10 active:scale-95"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              <span className="hidden sm:inline">Novo Repertório</span>
+              <span>Novo Repertório</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content Accordion list */}
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-8 flex flex-col gap-6">
+      {/* Main layout container */}
+      <main className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-8 flex flex-col gap-6 pb-24 md:pb-8">
         <h2 className="text-lg font-bold text-slate-900 dark:text-slate-50 flex items-center gap-2">
           Suas Missas Planejadas
           <span className="text-xs font-mono font-bold bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-md text-slate-500">
@@ -240,6 +234,14 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
           onSuccess={refreshData}
         />
       )}
+
+      <BottomNav onAddClick={() => setShowActionSheet(true)} />
+      <ActionSheet
+        isOpen={showActionSheet}
+        onClose={() => setShowActionSheet(false)}
+        onNewManual={() => setShowCreateSetlist(true)}
+        onNewPdf={() => router.push("/repertorios/importar")}
+      />
     </div>
   );
 }

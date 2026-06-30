@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useRef, useCallback } from "react";
 import { Song, Setlist } from "@/generated/prisma/client";
 import { transposeLine, getPreferredScale, isChordLine, sanitizePdfText } from "@/utils/chordTransposer";
-import { PART_LABELS, PART_COLORS } from "@/utils/labels";
+import { PART_LABELS, PART_COLORS, SEASON_LABELS } from "@/utils/labels";
 import { addSongToSetlist, updateSongContent } from "@/app/actions";
 
 interface SongViewerProps {
@@ -170,6 +170,10 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(song.content);
+  const [editTitle, setEditTitle] = useState(song.title);
+  const [editArtist, setEditArtist] = useState(song.artist);
+  const [editPart, setEditPart] = useState(song.part);
+  const [editSeason, setEditSeason] = useState(song.season || "ALL");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
   const preferredScale = useMemo(() => getPreferredScale(song.content), [song.content]);
@@ -226,11 +230,23 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   const handleSaveEdit = async () => {
     setSaveStatus("saving");
     try {
-      const res = await updateSongContent(song.id, { content: editContent });
+      const dataToUpdate = {
+        content: editContent,
+        title: editTitle,
+        artist: editArtist,
+        part: editPart,
+        season: editSeason === "ALL" ? null : editSeason,
+      };
+      
+      const res = await updateSongContent(song.id, dataToUpdate);
       if (res.success) {
         setSaveStatus("saved");
-        // Patch the local song object so renderedLines re-computes with new content
+        // Patch the local song object so renderedLines and UI re-computes with new content
         song.content = editContent;
+        song.title = editTitle;
+        song.artist = editArtist;
+        song.part = editPart;
+        song.season = (editSeason === "ALL" ? null : editSeason) as any;
         setTimeout(() => setSaveStatus("idle"), 2500);
       } else {
         setSaveStatus("error");
@@ -243,7 +259,11 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   };
 
   const handleCancelEdit = () => {
-    setEditContent(song.content); // discard changes
+    setEditContent(song.content);
+    setEditTitle(song.title);
+    setEditArtist(song.artist);
+    setEditPart(song.part);
+    setEditSeason(song.season || "ALL");
     setIsEditing(false);
     setSaveStatus("idle");
   };
@@ -296,9 +316,16 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             {/* Edit / Save / Cancel buttons */}
             {!isEditing ? (
               <button
-                onClick={() => { setEditContent(song.content); setIsEditing(true); }}
+                onClick={() => { 
+                  setEditContent(song.content); 
+                  setEditTitle(song.title);
+                  setEditArtist(song.artist);
+                  setEditPart(song.part);
+                  setEditSeason(song.season || "ALL");
+                  setIsEditing(true); 
+                }}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all active:scale-95"
-                title="Editar cifra"
+                title="Editar música"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -423,10 +450,56 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
       <div className="flex-1 overflow-y-auto px-4 py-6 md:py-10">
 
         {isEditing ? (
-          /* ── WYSIWYG Editor ── */
-          <div className="max-w-4xl mx-auto">
+          /* ── Edit Mode ── */
+          <div className="max-w-4xl mx-auto space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Título</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Artista/Autor</label>
+                <input
+                  type="text"
+                  value={editArtist}
+                  onChange={(e) => setEditArtist(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Momento Litúrgico</label>
+                <select
+                  value={editPart}
+                  onChange={(e) => setEditPart(e.target.value as any)}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                >
+                  {Object.keys(PART_LABELS).map((p) => (
+                    <option key={p} value={p}>{PART_LABELS[p as keyof typeof PART_LABELS]}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Tempo Litúrgico</label>
+                <select
+                  value={editSeason}
+                  onChange={(e) => setEditSeason(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                >
+                  <option value="ALL">Qualquer / Todos</option>
+                  {Object.keys(SEASON_LABELS).map((s) => (
+                    <option key={s} value={s}>{SEASON_LABELS[s as keyof typeof SEASON_LABELS]}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <ChordEditor value={editContent} onChange={setEditContent} />
-            <p className="mt-3 text-[11px] text-slate-400 text-right">
+            <p className="text-[11px] text-slate-400 text-right">
               Clique em <strong>Salvar Alterações</strong> para persistir no banco de dados.
             </p>
           </div>

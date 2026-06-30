@@ -93,7 +93,7 @@ export async function createSong(data: {
  */
 export async function updateSongContent(
   id: string,
-  data: { content?: string; title?: string; artist?: string; originalKey?: string }
+  data: { content?: string; title?: string; artist?: string; originalKey?: string; part?: any; season?: any }
 ) {
   try {
     const song = await prisma.song.update({

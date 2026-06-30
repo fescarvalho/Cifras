@@ -8,6 +8,9 @@ import SongViewer from "./SongViewer";
 import SetlistManager from "./SetlistManager";
 import CreateSongModal from "./CreateSongModal";
 import CreateSetlistModal from "./CreateSetlistModal";
+import BottomNav from "./BottomNav";
+import ActionSheet from "./ActionSheet";
+import { useRouter } from "next/navigation";
 import { PART_LABELS, PART_COLORS, SEASON_LABELS, SEASON_COLORS } from "@/utils/labels";
 import { getSongs, getSetlists, deleteSetlist, deleteSong } from "@/app/actions";
 
@@ -17,6 +20,7 @@ interface MainAppProps {
 }
 
 export default function MainApp({ initialSongs, initialSetlists }: MainAppProps) {
+  const router = useRouter();
   const [songs, setSongs] = useState<Song[]>(initialSongs);
   const [setlists, setSetlists] = useState<any[]>(initialSetlists);
 
@@ -32,6 +36,7 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
   // Modals state
   const [showCreateSong, setShowCreateSong] = useState(false);
   const [showCreateSetlist, setShowCreateSetlist] = useState(false);
+  const [showActionSheet, setShowActionSheet] = useState(false);
 
   // Theme state
   const [darkMode, setDarkMode] = useState(false);
@@ -177,33 +182,33 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
               )}
             </button>
 
-            {/* Link to Repertórios */}
+            {/* Link to Repertórios (Hidden on mobile) */}
             <Link
               href="/repertorios"
-              className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-350 font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+              className="hidden md:flex border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-350 font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm items-center gap-1.5 transition-all shadow-sm active:scale-95"
             >
               <svg className="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
               </svg>
-              <span className="hidden sm:inline">Repertórios</span>
+              <span>Repertórios</span>
             </Link>
 
-            {/* Quick Action Button */}
+            {/* Quick Action Button (Hidden on mobile) */}
             <button
               onClick={() => setShowCreateSong(true)}
-              className="bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm flex items-center gap-1.5 transition-all shadow-md shadow-violet-500/10 active:scale-95"
+              className="hidden md:flex bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm items-center gap-1.5 transition-all shadow-md shadow-violet-500/10 active:scale-95"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              <span className="hidden sm:inline">Nova Cifra</span>
+              <span>Nova Cifra</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main layout container */}
-      <main className="flex-1 max-w-5xl w-full mx-auto p-4 md:p-8 flex flex-col gap-6">
+      <main className="flex-1 max-w-5xl w-full mx-auto p-4 md:p-8 flex flex-col gap-6 pb-24 md:pb-8">
         
         {/* catalog */}
         <div className="flex flex-col gap-6">
@@ -315,6 +320,14 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
           }}
         />
       )}
+
+      <BottomNav onAddClick={() => setShowActionSheet(true)} />
+      <ActionSheet
+        isOpen={showActionSheet}
+        onClose={() => setShowActionSheet(false)}
+        onNewManual={() => setShowCreateSong(true)}
+        onNewPdf={() => router.push("/repertorios/importar")}
+      />
     </div>
   );
 }
