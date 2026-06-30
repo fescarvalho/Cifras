@@ -3,7 +3,7 @@ import { PrismaClient } from "@/generated/prisma/client";
 const globalForPrisma = global as unknown as { prisma: PrismaClient | undefined };
 
 function createPrismaClient() {
-  return new PrismaClient();
+  return new PrismaClient({} as any);
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
