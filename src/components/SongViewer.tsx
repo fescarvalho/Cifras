@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { Song, Setlist } from "@/generated/prisma/client";
-import { transposeLine, getPreferredScale } from "@/utils/chordTransposer";
+import { transposeLine, getPreferredScale, isChordLine, sanitizePdfText } from "@/utils/chordTransposer";
 import { PART_LABELS, PART_COLORS } from "@/utils/labels";
 import { addSongToSetlist } from "@/app/actions";
 
@@ -49,34 +49,27 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   }, [song.originalKey, semitones, preferredScale]);
 
   const renderedLines = useMemo(() => {
-    return song.content.split("\n").map((line, idx) => {
-      const isHeader = line.trim().startsWith("[") && line.trim().endsWith("]");
-      
-      // Let's check if it's a chord line
-      const clean = line.trim();
-      if (!clean) {
+    // Sanitize content coming from PDF pastes before processing
+    const sanitized = sanitizePdfText(song.content ?? '');
+
+    return sanitized.split("\n").map((line, idx) => {
+      const trimmed = line.trim();
+
+      if (!trimmed) {
         return { type: "empty", content: "", original: line, key: idx };
       }
-      
+
+      const isHeader = trimmed.startsWith("[") && trimmed.endsWith("]");
       if (isHeader) {
-        return { type: "header", content: line.trim(), original: line, key: idx };
+        return { type: "header", content: trimmed, original: line, key: idx };
       }
 
-      // Check if it is a chord line using our transposition function check
-      const isChords = transposeLine(line, 0, preferredScale) !== line || 
-                      // or if it strictly passes the chord line check
-                      line.split(/\s+/).filter(t => t.trim().length > 0).every(t => {
-                        const cleanT = t.trim();
-                        if (/^[|:\-\[\]()+]+$/.test(cleanT)) return true;
-                        return /^[A-G](?:#|b)?(?:m|M|maj|min|dim|aug|sus|add|no)?\d*(?:b5|#5|b9|#9)?(?:\([^)]+\))?(?:\/[A-G](?:#|b)?)?$/.test(cleanT);
-                      }) && line.split(/\s+/).filter(t => t.trim().length > 0 && !/^[|:\-\[\]()+]+$/.test(t.trim())).length > 0;
-
-      if (isChords) {
+      if (isChordLine(line)) {
         const transposed = transposeLine(line, semitones, preferredScale);
         return { type: "chords", content: transposed, original: line, key: idx };
-      } else {
-        return { type: "lyrics", content: line, original: line, key: idx };
       }
+
+      return { type: "lyrics", content: line, original: line, key: idx };
     });
   }, [song.content, semitones, preferredScale]);
 

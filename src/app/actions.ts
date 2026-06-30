@@ -272,6 +272,23 @@ export async function deleteSetlist(id: string) {
 }
 
 /**
+ * Deletes a song and all its setlist associations.
+ */
+export async function deleteSong(id: string) {
+  try {
+    // Remove all setlist relationships first (cascade not guaranteed in all setups)
+    await prisma.setlistSong.deleteMany({ where: { songId: id } });
+    await prisma.song.delete({ where: { id } });
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to delete song:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+
+/**
  * Saves a complete mass (setlist + songs) from a PDF import.
  */
 export async function saveMassFromImport(data: {

@@ -9,7 +9,7 @@ import SetlistManager from "./SetlistManager";
 import CreateSongModal from "./CreateSongModal";
 import CreateSetlistModal from "./CreateSetlistModal";
 import { PART_LABELS, PART_COLORS, SEASON_LABELS, SEASON_COLORS } from "@/utils/labels";
-import { getSongs, getSetlists, deleteSetlist } from "@/app/actions";
+import { getSongs, getSetlists, deleteSetlist, deleteSong } from "@/app/actions";
 
 interface MainAppProps {
   initialSongs: Song[];
@@ -119,6 +119,24 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
     }
   };
 
+  const handleDeleteSong = async (id: string, title: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const confirmed = window.confirm(`Excluir "${title}" permanentemente? Esta ação não pode ser desfeita.`);
+    if (!confirmed) return;
+
+    // Close viewer if this song is open
+    if (selectedSong?.id === id) setSelectedSong(null);
+
+    // Optimistic delete
+    setSongs(prev => prev.filter(s => s.id !== id));
+
+    try {
+      await deleteSong(id);
+    } catch (err) {
+      refreshData(); // Revert on error
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-300">
       
@@ -220,9 +238,20 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
                 <div
                   key={song.id}
                   onClick={() => setSelectedSong(song)}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-violet-500 dark:hover:border-violet-500/80 rounded-2xl p-4 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 flex flex-col gap-3 group"
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-violet-500 dark:hover:border-violet-500/80 rounded-2xl p-4 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 flex flex-col gap-3 group relative"
                 >
-                  <div className="flex justify-between items-start gap-2">
+                  {/* Delete button */}
+                  <button
+                    onClick={(e) => handleDeleteSong(song.id, song.title, e)}
+                    className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 opacity-0 group-hover:opacity-100 transition-all"
+                    title="Excluir música"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+
+                  <div className="flex justify-between items-start gap-2 pr-6">
                     <div>
                       <h3 className="font-bold text-slate-950 dark:text-slate-50 group-hover:text-violet-600 transition-colors line-clamp-1">
                         {song.title}

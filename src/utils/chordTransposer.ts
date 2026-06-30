@@ -13,9 +13,45 @@ const NOTE_TO_SEMITONE: { [key: string]: number } = {
   'B': 11
 };
 
-// Strict Chord Regex
-// Matches root (A-G with optional # or b), optional quality, optional extensions, optional modifiers in parens, and optional slash bass note
-const CHORD_REGEX = /^[A-G](?:#|b)?(?:m|M|maj|min|dim|aug|sus|add|no)?\d*(?:b5|#5|b9|#9)?(?:\([^)]+\))?(?:\/[A-G](?:#|b)?)?$/;
+/**
+ * Robust chord regex supporting:
+ * - Roots: A-G with # or b accidentals
+ * - Qualities: m, M, maj, min, dim, aug, sus, sus2, sus4
+ * - Extensions: 4, 5, 6, 7, 9, 11, 13, add9, add11, add13
+ * - Altered tones: b5, #5, b9, #9, #11, b13
+ * - Parenthesised modifiers: (9), (b5), etc.
+ * - Slash / inverted bass: /A, /F#, /Cb
+ */
+const CHORD_REGEX =
+  /^[A-G](?:#|b)?(?:(?:maj|min|aug|dim|sus|add)(?:\d{1,2})?|[mM])?(?:\d{1,2})?(?:(?:b|#)(?:5|9|11|13))*(?:\([^)]{1,10}\))?(?:\/[A-G](?:#|b)?)?$/;
+
+/** Tokens that are structural separators and do not count as chords or invalid words. */
+const STRUCTURAL_RE = /^[|:\-\[\]()+\/]+$/;
+
+/**
+ * Sanitizes raw text extracted from a PDF, removing common formatting artefacts
+ * like stray dollar signs, backslashes, and non-printable characters that corrupt chord names.
+ *
+ * Examples:
+ *   "$E/G\#$"  → "E/G#"
+ *   "A\m"      → "Am"
+ */
+export function sanitizePdfText(text: string): string {
+  if (!text) return '';
+  return (
+    text
+      // Remove LaTeX-style math delimiters and stray $
+      .replace(/\$/g, '')
+      // Remove backslash before # (\# → #) and before letters (\m → m)
+      .replace(/\\(#|b|[A-Za-z])/g, '$1')
+      // Remove lone backslashes
+      .replace(/\\/g, '')
+      // Normalize non-breaking spaces to regular spaces
+      .replace(/[\u00A0\u202F\u2009]/g, ' ')
+      // Collapse sequences of spaces/tabs to a single space per position (preserve newlines)
+      .replace(/[ \t]{2,}/g, (m) => m)
+  );
+}
 
 /**
  * Checks if a single string token is a valid chord or structural chord-line token.
@@ -23,38 +59,48 @@ const CHORD_REGEX = /^[A-G](?:#|b)?(?:m|M|maj|min|dim|aug|sus|add|no)?\d*(?:b5|#
 export function isChordToken(token: string): boolean {
   const clean = token.trim();
   if (!clean) return false;
-  // Allow structural symbols often found in chord lines
-  if (/^[|:\-\[\]()+]+$/.test(clean)) return true;
+  if (STRUCTURAL_RE.test(clean)) return true;
   return CHORD_REGEX.test(clean);
 }
 
 /**
- * Checks if a line contains predominantly chords and spaces.
+ * Checks if a line contains predominantly chords.
+ *
+ * Heuristic:
+ *  - Count real chord tokens (not structural separators).
+ *  - Count invalid tokens (words that are neither chords nor separators).
+ *  - The line qualifies as a chord line when:
+ *      chordCount >= 1 AND invalidCount <= tolerance
+ *  - Tolerance: 0 invalid tokens when there is only 1 chord; 1 invalid token
+ *    allowed when there are 2+ chords (handles edge cases like "1x" or "Fine").
  */
 export function isChordLine(line: string): boolean {
-  const trimmed = line.trim();
+  const trimmed = line?.trim();
   if (!trimmed) return false;
 
-  // Split line by whitespace to analyze tokens
   const tokens = trimmed.split(/\s+/);
-  
+
   let chordCount = 0;
   let invalidCount = 0;
 
   for (const token of tokens) {
-    if (isChordToken(token)) {
-      // Exclude structural tokens from contributing to chordCount if they are alone,
-      // but they don't count as invalid either.
-      if (!/^[|:\-\[\]()+]+$/.test(token)) {
-        chordCount++;
-      }
+    const clean = token.trim();
+    if (!clean) continue;
+    if (STRUCTURAL_RE.test(clean)) {
+      // Structural separators are neutral — neither chord nor invalid
+      continue;
+    }
+    if (CHORD_REGEX.test(clean)) {
+      chordCount++;
     } else {
       invalidCount++;
     }
   }
 
-  // A chord line must have at least one chord and no invalid words
-  return chordCount > 0 && invalidCount === 0;
+  if (chordCount === 0) return false;
+  // Allow at most 1 invalid token when the line has 2+ chords
+  const tolerance = chordCount >= 2 ? 1 : 0;
+  return invalidCount <= tolerance;
 }
 
 /**
