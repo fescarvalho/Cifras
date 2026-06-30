@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useCallback, useState } from "react";
 import { LiturgicalPart } from "@/generated/prisma/client";
 import { saveMassFromImport } from "@/app/actions";
 import { useRouter } from "next/navigation";
@@ -20,42 +20,195 @@ const LITURGICAL_PARTS = [
   "COMUNHAO", "ACAO_DE_GRACAS", "CANTO_FINAL", "ESPECIAL",
 ] as const;
 
-// ── Live Preview ──────────────────────────────────────────────────────────────
-function ChordPreview({ content }: { content: string }) {
-  const sanitized = sanitizePdfText(content ?? "");
-  const lines = sanitized.split("\n");
+// ─────────────────────────────────────────────────────────────────────────────
+// WYSIWYG Chord Editor
+//
+// Architecture: "Overlay" technique
+//   ┌─ container (position: relative, overflow: hidden) ───────────────────┐
+//   │  ┌─ <pre> (highlight layer, position: absolute, pointer-events:none)─┤
+//   │  │  renders coloured spans per line                                  │
+//   │  └───────────────────────────────────────────────────────────────────┤
+//   │  ┌─ <textarea> (input layer, position: absolute, color: transparent)─┤
+//   │  │  captures keyboard/mouse; caret is visible via caret-color        │
+//   │  └───────────────────────────────────────────────────────────────────┘
+//
+// CRITICAL: <pre> and <textarea> share IDENTICAL layout CSS so every
+// character sits on the same pixel, keeping the caret perfectly aligned.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Shared style object applied to BOTH layers via inline style.
+// Must be identical in every dimension — even 1px difference breaks alignment.
+const SHARED_STYLE: React.CSSProperties = {
+  fontFamily: "'Courier New', Courier, monospace",
+  fontSize: "13px",
+  lineHeight: "1.6",
+  padding: "12px",
+  margin: 0,
+  whiteSpace: "pre-wrap",
+  overflowWrap: "anywhere",
+  wordBreak: "break-all",
+  tabSize: 2,
+  letterSpacing: 0,
+};
+
+function buildHighlightedHTML(text: string): React.ReactNode {
+  // Ensure content always ends with a newline so the <pre> height matches textarea
+  const lines = (text.endsWith("\n") ? text : text + "\n").split("\n");
+
+  return lines.map((line, i) => {
+    const isLast = i === lines.length - 1;
+    const trimmed = line.trim();
+
+    // Empty line — render a non-breaking space so the line keeps its height
+    if (!trimmed) {
+      return (
+        <span key={i} style={{ display: "block", minHeight: "1.6em" }}>
+          {isLast ? null : "\u00A0"}
+        </span>
+      );
+    }
+
+    // Section header [Refrão], [Verso], etc.
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      return (
+        <span
+          key={i}
+          style={{
+            display: "block",
+            color: "#94a3b8",   // slate-400
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            fontSize: "0.8em",
+          }}
+        >
+          {line + "\n"}
+        </span>
+      );
+    }
+
+    // Chord line → orange
+    if (isChordLine(line)) {
+      return (
+        <span
+          key={i}
+          style={{
+            display: "block",
+            color: "#f97316",   // orange-500
+            fontWeight: 700,
+          }}
+        >
+          {line + "\n"}
+        </span>
+      );
+    }
+
+    // Regular lyric line
+    return (
+      <span key={i} style={{ display: "block", color: "#e2e8f0" /* slate-200 */ }}>
+        {line + "\n"}
+      </span>
+    );
+  });
+}
+
+interface ChordEditorProps {
+  value: string;
+  onChange: (v: string) => void;
+  minRows?: number;
+}
+
+function ChordEditor({ value, onChange, minRows = 16 }: ChordEditorProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const preRef = useRef<HTMLPreElement>(null);
+
+  // Sync scroll: when the textarea scrolls, mirror it to the <pre>
+  const handleScroll = useCallback(() => {
+    if (preRef.current && textareaRef.current) {
+      preRef.current.scrollTop = textareaRef.current.scrollTop;
+      preRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    }
+  }, []);
+
+  // Minimum height based on minRows
+  const minHeight = `calc(${minRows} * 1.6em + 24px)`; // rows × lineHeight + 2×padding
 
   return (
-    <div className="h-full overflow-y-auto rounded-lg bg-slate-950 border border-slate-700 p-3 text-xs leading-relaxed">
-      {lines.map((line, i) => {
-        const trimmed = line.trim();
+    <div
+      style={{
+        position: "relative",
+        borderRadius: "8px",
+        border: "1.5px solid #475569",  // slate-600
+        overflow: "hidden",
+        minHeight,
+        background: "#0f172a",          // slate-950
+        // Focus ring handled via :focus-within below (can't do in inline style)
+      }}
+      className="chord-editor-container"
+    >
+      {/* ── Highlight layer (sits behind textarea) ── */}
+      <pre
+        ref={preRef}
+        aria-hidden="true"
+        style={{
+          ...SHARED_STYLE,
+          position: "absolute",
+          inset: 0,
+          overflow: "hidden",       // hides scrollbars; textarea drives scrolling
+          pointerEvents: "none",
+          userSelect: "none",
+          color: "#e2e8f0",         // fallback colour (individual spans override)
+          background: "transparent",
+          minHeight,
+        }}
+      >
+        {buildHighlightedHTML(value)}
+      </pre>
 
-        if (!trimmed) {
-          return <div key={i} className="h-3" />;
-        }
+      {/* ── Input layer (invisible text, visible caret) ── */}
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onScroll={handleScroll}
+        spellCheck={false}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        style={{
+          ...SHARED_STYLE,
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          minHeight,
+          background: "transparent",
+          color: "transparent",       // text is invisible (shown by <pre>)
+          caretColor: "#f8fafc",      // slate-50 — caret stays visible
+          border: "none",
+          outline: "none",
+          resize: "none",
+          overflow: "auto",
+          zIndex: 1,
+        }}
+      />
 
-        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
-          return (
-            <div key={i} className="font-sans font-bold text-slate-400 uppercase tracking-wider text-[0.7em] mt-3 mb-1 border-b border-slate-800 pb-0.5">
-              {trimmed}
-            </div>
-          );
-        }
-
-        if (isChordLine(line)) {
-          return (
-            <div key={i} className="font-mono font-bold text-orange-400 whitespace-pre leading-none pt-2 pb-0.5">
-              {line}
-            </div>
-          );
-        }
-
-        return (
-          <div key={i} className="font-sans text-slate-200 whitespace-pre-wrap">
-            {line}
-          </div>
-        );
-      })}
+      {/* Stretch the container to match content height */}
+      <div
+        aria-hidden="true"
+        style={{
+          ...SHARED_STYLE,
+          visibility: "hidden",
+          pointerEvents: "none",
+          whiteSpace: "pre-wrap",
+          overflowWrap: "anywhere",
+          wordBreak: "break-all",
+          minHeight,
+        }}
+      >
+        {/* Ghost element so the container grows with content */}
+        {value.endsWith("\n") ? value + " " : value + "\n "}
+      </div>
     </div>
   );
 }
@@ -72,8 +225,6 @@ function SongCard({
   onUpdate: (id: string, field: keyof ExtractedSong, value: string) => void;
   onRemove: (id: string) => void;
 }) {
-  const [showPreview, setShowPreview] = useState(true);
-
   return (
     <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
       {/* Card Header */}
@@ -81,16 +232,16 @@ function SongCard({
         <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
           Música {index + 1}
         </span>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowPreview((v) => !v)}
-            className="text-xs text-violet-600 dark:text-violet-400 hover:underline font-medium"
-          >
-            {showPreview ? "Ocultar preview" : "Ver preview"}
-          </button>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-slate-400 flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
+            <span className="text-orange-400 font-semibold">acordes</span>
+            <span className="mx-0.5">·</span>
+            <span className="text-slate-300">letras</span>
+          </span>
           <button
             onClick={() => onRemove(song.id)}
-            className="text-xs text-rose-500 hover:text-rose-700 font-medium"
+            className="text-xs text-rose-500 hover:text-rose-700 font-medium ml-2"
           >
             Remover
           </button>
@@ -98,7 +249,7 @@ function SongCard({
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Title + Part */}
+        {/* Title + Part row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Título</label>
@@ -125,34 +276,15 @@ function SongCard({
           </div>
         </div>
 
-        {/* Editor + Preview side-by-side on large screens */}
-        <div className={`grid gap-3 ${showPreview ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"}`}>
-          {/* Textarea */}
-          <div className="space-y-1 flex flex-col">
-            <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-              Conteúdo (Letra e Cifras)
-            </label>
-            <textarea
-              value={song.content}
-              onChange={(e) => onUpdate(song.id, "content", e.target.value)}
-              rows={14}
-              spellCheck={false}
-              className="flex-1 w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-mono bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 whitespace-pre resize-y focus:outline-none focus:ring-2 focus:ring-violet-500"
-            />
-          </div>
-
-          {/* Live Preview */}
-          {showPreview && (
-            <div className="space-y-1 flex flex-col">
-              <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-                <span className="inline-block w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-                Pré-visualização
-              </label>
-              <div className="flex-1">
-                <ChordPreview content={song.content} />
-              </div>
-            </div>
-          )}
+        {/* WYSIWYG Chord Editor */}
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+            Conteúdo — clique e edite diretamente
+          </label>
+          <ChordEditor
+            value={song.content}
+            onChange={(v) => onUpdate(song.id, "content", v)}
+          />
         </div>
       </div>
     </div>
@@ -167,7 +299,6 @@ export default function PdfImport() {
   const [error, setError] = useState<string | null>(null);
   const [songs, setSongs] = useState<ExtractedSong[]>([]);
 
-  // Setlist details
   const [massTitle, setMassTitle] = useState("");
   const [massDate, setMassDate] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -193,7 +324,11 @@ export default function PdfImport() {
 
       if (!res.ok) throw new Error(data.error || "Erro ao processar o PDF.");
 
-      setSongs(data.songs);
+      // Sanitize content before showing to the editor
+      setSongs(data.songs.map((s: ExtractedSong) => ({
+        ...s,
+        content: sanitizePdfText(s.content),
+      })));
       if (!massTitle) setMassTitle(file.name.replace(/\.pdf$/i, ""));
       if (!massDate) setMassDate(new Date().toISOString().split("T")[0]);
     } catch (err: any) {
@@ -237,7 +372,7 @@ export default function PdfImport() {
     }
   };
 
-  // ── Upload screen ──
+  // ── Upload screen ──────────────────────────────────────────────────────────
   if (songs.length === 0) {
     return (
       <div className="p-6 bg-white dark:bg-slate-900 rounded-xl shadow-md space-y-5 border border-slate-200 dark:border-slate-700">
@@ -257,18 +392,9 @@ export default function PdfImport() {
               <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 {file ? file.name : "Clique para selecionar o PDF"}
               </span>
-              {file && (
-                <span className="text-xs text-slate-400">
-                  {(file.size / 1024).toFixed(1)} KB
-                </span>
-              )}
+              {file && <span className="text-xs text-slate-400">{(file.size / 1024).toFixed(1)} KB</span>}
             </div>
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={handleFileChange}
-              className="hidden"
-            />
+            <input type="file" accept="application/pdf" onChange={handleFileChange} className="hidden" />
           </label>
 
           {error && (
@@ -300,14 +426,16 @@ export default function PdfImport() {
     );
   }
 
-  // ── Review screen ──
+  // ── Review screen ──────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       {/* Mass metadata */}
       <div className="p-5 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
         <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
           Revisão do Repertório
-          <span className="ml-2 text-sm font-normal text-slate-400">({songs.length} música{songs.length !== 1 ? "s" : ""} encontrada{songs.length !== 1 ? "s" : ""})</span>
+          <span className="ml-2 text-sm font-normal text-slate-400">
+            ({songs.length} música{songs.length !== 1 ? "s" : ""} encontrada{songs.length !== 1 ? "s" : ""})
+          </span>
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">

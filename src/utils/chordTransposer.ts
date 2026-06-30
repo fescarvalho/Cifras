@@ -64,43 +64,35 @@ export function isChordToken(token: string): boolean {
 }
 
 /**
- * Checks if a line contains predominantly chords.
+ * Checks if a line is a chord line using a strict, infalível heuristic:
  *
- * Heuristic:
- *  - Count real chord tokens (not structural separators).
- *  - Count invalid tokens (words that are neither chords nor separators).
- *  - The line qualifies as a chord line when:
- *      chordCount >= 1 AND invalidCount <= tolerance
- *  - Tolerance: 0 invalid tokens when there is only 1 chord; 1 invalid token
- *    allowed when there are 2+ chords (handles edge cases like "1x" or "Fine").
+ *  1. trim() — if empty → false
+ *  2. Remove all structural punctuation allowed in chord lines:
+ *       spaces, hyphens, pipes (|), parentheses, colons, dots
+ *  3. Split remaining text into tokens on whitespace
+ *  4. The line is a chord line if and only if:
+ *       - There is at least one token, AND
+ *       - EVERY token matches CHORD_REGEX
+ *
+ *  This means "   G/B   -   C9  " is correctly identified:
+ *    after stripping structural chars → ["G/B", "C9"] → both match → true
+ *
+ *  And "Aleluia" or "Glória a Deus" → no match → false
  */
 export function isChordLine(line: string): boolean {
   const trimmed = line?.trim();
   if (!trimmed) return false;
 
-  const tokens = trimmed.split(/\s+/);
+  // Remove all structural separators so they don't pollute the token list
+  // Keeps letters, digits, #, b (accidentals) — the core chord characters
+  const stripped = trimmed.replace(/[\s|\-:()+.]+/g, ' ').trim();
+  if (!stripped) return false;
 
-  let chordCount = 0;
-  let invalidCount = 0;
+  const tokens = stripped.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return false;
 
-  for (const token of tokens) {
-    const clean = token.trim();
-    if (!clean) continue;
-    if (STRUCTURAL_RE.test(clean)) {
-      // Structural separators are neutral — neither chord nor invalid
-      continue;
-    }
-    if (CHORD_REGEX.test(clean)) {
-      chordCount++;
-    } else {
-      invalidCount++;
-    }
-  }
-
-  if (chordCount === 0) return false;
-  // Allow at most 1 invalid token when the line has 2+ chords
-  const tolerance = chordCount >= 2 ? 1 : 0;
-  return invalidCount <= tolerance;
+  // Every single token must be a valid chord
+  return tokens.every((token) => CHORD_REGEX.test(token));
 }
 
 /**

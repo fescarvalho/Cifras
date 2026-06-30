@@ -89,6 +89,26 @@ export async function createSong(data: {
 }
 
 /**
+ * Updates only the editable fields of an existing song.
+ */
+export async function updateSongContent(
+  id: string,
+  data: { content?: string; title?: string; artist?: string; originalKey?: string }
+) {
+  try {
+    const song = await prisma.song.update({
+      where: { id },
+      data,
+    });
+    revalidatePath("/");
+    return { success: true, song };
+  } catch (error: any) {
+    console.error("Failed to update song:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Fetches all setlists sorted by date descending.
  */
 export async function getSetlists() {
