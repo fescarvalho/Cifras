@@ -11,6 +11,9 @@ interface SongViewerProps {
   setlists?: Setlist[];
   onClose?: () => void;
   showBackButton?: boolean;
+  performanceMode?: boolean;
+  semitones?: number;
+  fontSize?: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -160,9 +163,14 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 // ─────────────────────────────────────────────────────────────────────────────
 // Main SongViewer
 // ─────────────────────────────────────────────────────────────────────────────
-export default function SongViewer({ song, setlists = [], onClose, showBackButton = false }: SongViewerProps) {
-  const [semitones, setSemitones] = useState(0);
-  const [fontSize, setFontSize] = useState(16);
+export default function SongViewer({ song, setlists = [], onClose, showBackButton = false, performanceMode = false, semitones: externalSemitones, fontSize: externalFontSize }: SongViewerProps) {
+  const [internalSemitones, setInternalSemitones] = useState(0);
+  const [internalFontSize, setInternalFontSize] = useState(16);
+
+  const semitones = externalSemitones ?? internalSemitones;
+  const setSemitones = setInternalSemitones;
+  const fontSize = externalFontSize ?? internalFontSize;
+  const setFontSize = setInternalFontSize;
   const [selectedSetlistId, setSelectedSetlistId] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
@@ -281,6 +289,41 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
     saved: "bg-emerald-500 text-white",
     error: "bg-rose-600 hover:bg-rose-700 text-white",
   };
+
+  // ── Performance mode: just the chord sheet, no chrome ──
+  if (performanceMode) {
+    return (
+      <div className="flex-1 overflow-y-auto px-3 py-2">
+        <div
+          className="w-full leading-relaxed overflow-x-auto"
+          style={{ fontSize: `${fontSize}px` }}
+        >
+          {renderedLines.map((line) => {
+            if (line.type === "empty") return <div key={line.key} className="h-3" />;
+            if (line.type === "section") {
+              return (
+                <div key={line.key} className="text-slate-400 font-bold uppercase text-[0.7em] tracking-wider pt-3 pb-1">
+                  {line.content}
+                </div>
+              );
+            }
+            if (line.type === "chords") {
+              return (
+                <div key={line.key} className="font-mono font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre leading-none pb-0.5 pt-1.5" style={{ letterSpacing: "normal" }}>
+                  {line.content}
+                </div>
+              );
+            }
+            return (
+              <div key={line.key} className="font-sans text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-snug pb-0.5">
+                {line.content}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">

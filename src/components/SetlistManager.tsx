@@ -27,6 +27,8 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
   const [error, setError] = useState("");
   const [isPerformanceMode, setIsPerformanceMode] = useState(false);
   const [activePerformanceSongIdx, setActivePerformanceSongIdx] = useState(0);
+  const [perfSemitones, setPerfSemitones] = useState(0);
+  const [perfFontSize, setPerfFontSize] = useState(14);
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
 
   const loadSetlistDetails = async () => {
@@ -127,32 +129,25 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
 
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-slate-950 text-slate-100">
-        {/* Performance Top Bar */}
-        <div className="bg-slate-900 border-b border-slate-800 p-3 md:p-4 flex items-center gap-3">
+        {/* Performance Top Bar — compact */}
+        <div className="bg-slate-900 border-b border-slate-800 px-2 py-1.5 flex items-center gap-2">
           <button
             onClick={() => setIsPerformanceMode(false)}
-            className="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-slate-200 shrink-0"
+            className="bg-slate-800 hover:bg-slate-700 p-1.5 rounded-lg text-slate-200 shrink-0"
             title="Sair do Modo de Execução"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
 
-          <div className="hidden md:block shrink-0">
-            <span className="text-xs uppercase font-bold tracking-wider text-violet-400">
-              Modo de Missa ({activePerformanceSongIdx + 1} de {songs.length})
-            </span>
-            <h2 className="text-lg font-bold truncate max-w-[200px] lg:max-w-xs">{setlist.title}</h2>
-          </div>
-
-          {/* Quick select buttons */}
-          <div className="flex-1 flex items-center gap-1.5 overflow-x-auto p-1 bg-slate-950 rounded-lg min-w-0">
+          {/* Quick select buttons — fill remaining space */}
+          <div className="flex-1 flex items-center gap-1 overflow-x-auto p-0.5 bg-slate-950 rounded-lg min-w-0">
             {songs.map((s, idx) => (
               <button
                 key={s.id}
                 onClick={() => setActivePerformanceSongIdx(idx)}
-                className={`text-[10px] md:text-xs font-semibold px-3 py-2 rounded-md transition-all whitespace-nowrap shrink-0 ${
+                className={`text-[10px] font-semibold px-2 py-1.5 rounded-md transition-all whitespace-nowrap shrink-0 ${
                   idx === activePerformanceSongIdx
                     ? "bg-violet-600 text-white font-bold"
                     : "bg-slate-900 text-slate-400 hover:bg-slate-850"
@@ -164,35 +159,79 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
           </div>
         </div>
 
-        {/* Chords Sheet Area */}
+        {/* Chords Sheet Area — fullscreen, no SongViewer chrome */}
         <div className="flex-1 overflow-y-auto">
-          <SongViewer song={currentSong} />
+          <SongViewer
+            song={currentSong}
+            performanceMode
+            semitones={perfSemitones}
+            fontSize={perfFontSize}
+          />
         </div>
 
-        {/* Footer Navigation Bar */}
-        <div className="bg-slate-900 border-t border-slate-800 p-4 flex items-center justify-between shadow-lg">
+        {/* Footer — compact controls + navigation */}
+        <div className="bg-slate-900 border-t border-slate-800 px-2 py-2 flex items-center justify-between gap-1">
+          {/* Anterior */}
           <button
             onClick={() => setActivePerformanceSongIdx(prev => Math.max(0, prev - 1))}
             disabled={activePerformanceSongIdx === 0}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-xl transition-all select-none"
+            className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white font-bold py-2 px-3 rounded-lg transition-all select-none text-sm"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Anterior
+            <span className="hidden sm:inline">Anterior</span>
           </button>
 
-          <span className="text-sm font-mono text-slate-400 font-semibold select-none">
-            {songs[activePerformanceSongIdx].song.title}
-          </span>
+          {/* Center: transpose + font */}
+          <div className="flex items-center gap-1">
+            {/* Transpose */}
+            <button
+              onClick={() => setPerfSemitones(s => s - 1)}
+              className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-1.5 px-2 rounded-md text-xs transition-all active:scale-95"
+              title="Transpor -1"
+            >
+              −
+            </button>
+            <span className="text-[10px] font-mono font-bold text-orange-400 min-w-[28px] text-center">
+              {perfSemitones !== 0 ? (perfSemitones > 0 ? `+${perfSemitones}` : perfSemitones) : "Tom"}
+            </span>
+            <button
+              onClick={() => setPerfSemitones(s => s + 1)}
+              className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-1.5 px-2 rounded-md text-xs transition-all active:scale-95"
+              title="Transpor +1"
+            >
+              +
+            </button>
 
+            <div className="w-px h-5 bg-slate-700 mx-1" />
+
+            {/* Font size */}
+            <button
+              onClick={() => setPerfFontSize(f => Math.max(10, f - 1))}
+              className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-1.5 px-2 rounded-md text-[10px] transition-all active:scale-95"
+              title="Diminuir fonte"
+            >
+              A−
+            </button>
+            <span className="text-[10px] font-mono font-bold text-slate-400 min-w-[22px] text-center">{perfFontSize}</span>
+            <button
+              onClick={() => setPerfFontSize(f => Math.min(28, f + 1))}
+              className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-1.5 px-2 rounded-md text-[10px] transition-all active:scale-95"
+              title="Aumentar fonte"
+            >
+              A+
+            </button>
+          </div>
+
+          {/* Próxima */}
           <button
             onClick={() => setActivePerformanceSongIdx(prev => Math.min(songs.length - 1, prev + 1))}
             disabled={activePerformanceSongIdx === songs.length - 1}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-xl transition-all select-none"
+            className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white font-bold py-2 px-3 rounded-lg transition-all select-none text-sm"
           >
-            Próxima
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span className="hidden sm:inline">Próxima</span>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
