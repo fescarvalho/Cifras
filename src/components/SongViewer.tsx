@@ -204,7 +204,28 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
 
   const renderedLines = useMemo(() => {
     const sanitized = sanitizePdfText(song.content ?? "");
-    return sanitized.split("\n").map((line, idx) => {
+
+    // Splits glued chords like "C#G#7" → "C#  G#7"
+    // Looks for a capital letter A-G that starts a new chord mid-token
+    const splitGluedChords = (line: string): string => {
+      // Only try on lines that look like they could be chord lines (short, no lowercase words)
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.length > 120) return line;
+      // If it already has spaces and is detected as a chord line, leave it
+      if (isChordLine(line)) return line;
+      // Try splitting: insert space before uppercase A-G that follows a non-space character
+      // but only if the character before is a digit, #, b, m, or lowercase letter (chord suffix)
+      const split = trimmed.replace(/([#b\dm\d)])([A-G](?:#|b)?(?:m|M|maj|min|dim|aug|sus|add)?)/g, '$1  $2');
+      if (split !== trimmed && isChordLine(split)) {
+        // Preserve leading whitespace
+        const leading = line.length - line.trimStart().length;
+        return ' '.repeat(leading) + split;
+      }
+      return line;
+    };
+
+    return sanitized.split("\n").map((rawLine, idx) => {
+      const line = splitGluedChords(rawLine);
       const trimmed = line.trim();
       if (!trimmed) return { type: "empty", content: "", key: idx };
       if (trimmed.startsWith("[") && trimmed.endsWith("]"))
@@ -212,7 +233,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
       if (isChordLine(line)) {
         return { type: "chords", content: transposeLine(line, semitones, preferredScale), key: idx };
       }
-      return { type: "lyrics", content: line, key: idx };
+      return { type: "lyrics", content: rawLine, key: idx };
     });
   }, [song.content, semitones, preferredScale]);
 

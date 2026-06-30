@@ -199,8 +199,8 @@ export function transposeLine(line: string, semitones: number, preferredScale: s
 
     // Calculate spaces needed to maintain alignment
     let spacesNeeded = token.index - lastOutputEnd;
-    if (spacesNeeded < 0) {
-      spacesNeeded = 1; // Overlap prevention: force at least one space
+    if (spacesNeeded < 2) {
+      spacesNeeded = 2; // Minimum 2 spaces between chords so they never look glued
     }
 
     outputLine += ' '.repeat(spacesNeeded) + transposedText;
