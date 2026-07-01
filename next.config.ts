@@ -1,8 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['pdf2json', '@napi-rs/canvas'],
-  /* config options here */
+  serverExternalPackages: ['pdf-parse', '@napi-rs/canvas'],
+  experimental: {
+    outputFileTracingIncludes: {
+      '/api/parse-pdf': ['./node_modules/pdf-parse/**/*'],
+    },
+  },
 };
 
 export default nextConfig;
