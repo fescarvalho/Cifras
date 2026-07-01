@@ -33,16 +33,17 @@ enum LiturgicalSeason {
 }
 
 model Song {
-  id          String            @id @default(cuid())
-  title       String
-  artist      String
-  originalKey String
-  content     String            // Contains chord sheet
-  part        LiturgicalPart
-  season      LiturgicalSeason? // Optional (can be general/any season)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  setlists    SetlistSong[]
+  id           String            @id @default(cuid())
+  title        String
+  artist       String
+  originalKey  String
+  content      String            // Contains chord sheet
+  part         LiturgicalPart
+  season       LiturgicalSeason? // Optional (can be general/any season)
+  referenceUrl String?           // Optional YouTube/reference link
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  setlists     SetlistSong[]
 }
 
 model Setlist {

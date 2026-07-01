@@ -56,6 +56,15 @@ function buildHighlight(text: string): React.ReactNode {
       );
     }
     if (isChordLine(line)) {
+      const introMatch = line.match(/^(\s*(?:intro(?:du[cç][aã]o)?)[:.\-]*\s*)(.*)$/i);
+      if (introMatch) {
+        return (
+          <span key={i} style={{ display: "block" }}>
+            <span style={{ color: "#e2e8f0" }}>{introMatch[1]}</span>
+            <span style={{ color: "#f97316", fontWeight: 700 }}>{introMatch[2] + "\n"}</span>
+          </span>
+        );
+      }
       return (
         <span key={i} style={{ display: "block", color: "#f97316", fontWeight: 700 }}>
           {line + "\n"}
@@ -182,6 +191,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   const [editArtist, setEditArtist] = useState(song.artist);
   const [editPart, setEditPart] = useState(song.part);
   const [editSeason, setEditSeason] = useState(song.season || "ALL");
+  const [editReferenceUrl, setEditReferenceUrl] = useState(song.referenceUrl || "");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
   const preferredScale = useMemo(() => getPreferredScale(song.content), [song.content]);
@@ -265,6 +275,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
         artist: editArtist,
         part: editPart,
         season: editSeason === "ALL" ? null : editSeason,
+        referenceUrl: editReferenceUrl || null,
       };
       
       const res = await updateSongContent(song.id, dataToUpdate);
@@ -276,6 +287,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
         song.artist = editArtist;
         song.part = editPart;
         song.season = (editSeason === "ALL" ? null : editSeason) as any;
+        song.referenceUrl = editReferenceUrl || null;
         setTimeout(() => setSaveStatus("idle"), 2500);
       } else {
         setSaveStatus("error");
@@ -293,6 +305,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
     setEditArtist(song.artist);
     setEditPart(song.part);
     setEditSeason(song.season || "ALL");
+    setEditReferenceUrl(song.referenceUrl || "");
     setIsEditing(false);
     setSaveStatus("idle");
   };
@@ -373,6 +386,18 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${PART_COLORS[song.part]} ml-2`}>
               {PART_LABELS[song.part]}
             </span>
+            {song.referenceUrl && (
+              <a
+                href={song.referenceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors ml-1"
+                title="Abrir referência no YouTube"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>
+                YouTube
+              </a>
+            )}
           </div>
 
           {/* Right: controls */}
@@ -386,6 +411,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                   setEditArtist(song.artist);
                   setEditPart(song.part);
                   setEditSeason(song.season || "ALL");
+                  setEditReferenceUrl(song.referenceUrl || "");
                   setIsEditing(true); 
                 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all active:scale-95"
@@ -560,6 +586,16 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                   ))}
                 </select>
               </div>
+              <div className="space-y-1 lg:col-span-2">
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Referência (YouTube)</label>
+                <input
+                  type="url"
+                  value={editReferenceUrl}
+                  onChange={(e) => setEditReferenceUrl(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder:text-slate-400"
+                />
+              </div>
             </div>
 
             <ChordEditor value={editContent} onChange={setEditContent} />
@@ -583,6 +619,15 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                 );
               }
               if (line.type === "chords") {
+                const introMatch = line.content.match(/^(\s*(?:intro(?:du[cç][aã]o)?)[:.\-]*\s*)(.*)$/i);
+                if (introMatch) {
+                  return (
+                    <div key={line.key} className="font-mono whitespace-pre leading-none pb-1 pt-2" style={{ letterSpacing: "normal" }}>
+                      <span className="text-slate-500 dark:text-slate-400 font-normal">{introMatch[1]}</span>
+                      <span className="font-bold text-orange-600 dark:text-orange-400">{introMatch[2]}</span>
+                    </div>
+                  );
+                }
                 return (
                   <div key={line.key} className="font-mono font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre leading-none pb-1 pt-2" style={{ letterSpacing: "normal" }}>
                     {line.content}

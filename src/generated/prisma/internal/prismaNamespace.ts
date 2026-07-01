@@ -675,6 +675,7 @@ export const SongScalarFieldEnum = {
   content: 'content',
   part: 'part',
   season: 'season',
+  referenceUrl: 'referenceUrl',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

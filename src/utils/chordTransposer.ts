@@ -94,10 +94,18 @@ export function isChordLine(line: string): boolean {
   const tokens = stripped.split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return false;
 
-  // Every single token must be a valid chord
-  return tokens.every((token) => CHORD_REGEX.test(token));
-}
+  // Check if the line starts with "intro" (case insensitive)
+  const firstToken = tokens[0].toLowerCase();
+  const isIntro = firstToken === 'intro' || firstToken === 'introdução' || firstToken === 'introducao';
+  
+  const chordTokens = isIntro ? tokens.slice(1) : tokens;
 
+  // If the line is ONLY "Intro", consider it a chord line so it gets highlighted
+  if (isIntro && chordTokens.length === 0) return true;
+
+  // Every single remaining token must be a valid chord
+  return chordTokens.every((token) => CHORD_REGEX.test(token));
+}
 /**
  * Transposes a single note by a given number of semitones, outputting in the preferred accidental scale.
  */

@@ -93,7 +93,7 @@ export async function createSong(data: {
  */
 export async function updateSongContent(
   id: string,
-  data: { content?: string; title?: string; artist?: string; originalKey?: string; part?: any; season?: any }
+  data: { content?: string; title?: string; artist?: string; originalKey?: string; part?: any; season?: any; referenceUrl?: string | null }
 ) {
   try {
     const song = await prisma.song.update({
@@ -314,7 +314,7 @@ export async function deleteSong(id: string) {
 export async function saveMassFromImport(data: {
   title: string;
   dateStr: string;
-  songs: { title: string; content: string; part: LiturgicalPart }[];
+  songs: { title: string; content: string; part: LiturgicalPart; referenceUrl?: string | null }[];
 }) {
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -336,6 +336,7 @@ export async function saveMassFromImport(data: {
             originalKey: "C", // Default key
             content: s.content,
             part: s.part,
+            referenceUrl: s.referenceUrl || null,
           },
         });
 

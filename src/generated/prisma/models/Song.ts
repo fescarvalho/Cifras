@@ -32,6 +32,7 @@ export type SongMinAggregateOutputType = {
   content: string | null
   part: $Enums.LiturgicalPart | null
   season: $Enums.LiturgicalSeason | null
+  referenceUrl: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -44,6 +45,7 @@ export type SongMaxAggregateOutputType = {
   content: string | null
   part: $Enums.LiturgicalPart | null
   season: $Enums.LiturgicalSeason | null
+  referenceUrl: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -56,6 +58,7 @@ export type SongCountAggregateOutputType = {
   content: number
   part: number
   season: number
+  referenceUrl: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -70,6 +73,7 @@ export type SongMinAggregateInputType = {
   content?: true
   part?: true
   season?: true
+  referenceUrl?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -82,6 +86,7 @@ export type SongMaxAggregateInputType = {
   content?: true
   part?: true
   season?: true
+  referenceUrl?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -94,6 +99,7 @@ export type SongCountAggregateInputType = {
   content?: true
   part?: true
   season?: true
+  referenceUrl?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -179,6 +185,7 @@ export type SongGroupByOutputType = {
   content: string
   part: $Enums.LiturgicalPart
   season: $Enums.LiturgicalSeason | null
+  referenceUrl: string | null
   createdAt: Date
   updatedAt: Date
   _count: SongCountAggregateOutputType | null
@@ -212,6 +219,7 @@ export type SongWhereInput = {
   content?: Prisma.StringFilter<"Song"> | string
   part?: Prisma.EnumLiturgicalPartFilter<"Song"> | $Enums.LiturgicalPart
   season?: Prisma.EnumLiturgicalSeasonNullableFilter<"Song"> | $Enums.LiturgicalSeason | null
+  referenceUrl?: Prisma.StringNullableFilter<"Song"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Song"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Song"> | Date | string
   setlists?: Prisma.SetlistSongListRelationFilter
@@ -225,6 +233,7 @@ export type SongOrderByWithRelationInput = {
   content?: Prisma.SortOrder
   part?: Prisma.SortOrder
   season?: Prisma.SortOrderInput | Prisma.SortOrder
+  referenceUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   setlists?: Prisma.SetlistSongOrderByRelationAggregateInput
@@ -241,6 +250,7 @@ export type SongWhereUniqueInput = Prisma.AtLeast<{
   content?: Prisma.StringFilter<"Song"> | string
   part?: Prisma.EnumLiturgicalPartFilter<"Song"> | $Enums.LiturgicalPart
   season?: Prisma.EnumLiturgicalSeasonNullableFilter<"Song"> | $Enums.LiturgicalSeason | null
+  referenceUrl?: Prisma.StringNullableFilter<"Song"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Song"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Song"> | Date | string
   setlists?: Prisma.SetlistSongListRelationFilter
@@ -254,6 +264,7 @@ export type SongOrderByWithAggregationInput = {
   content?: Prisma.SortOrder
   part?: Prisma.SortOrder
   season?: Prisma.SortOrderInput | Prisma.SortOrder
+  referenceUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.SongCountOrderByAggregateInput
@@ -272,6 +283,7 @@ export type SongScalarWhereWithAggregatesInput = {
   content?: Prisma.StringWithAggregatesFilter<"Song"> | string
   part?: Prisma.EnumLiturgicalPartWithAggregatesFilter<"Song"> | $Enums.LiturgicalPart
   season?: Prisma.EnumLiturgicalSeasonNullableWithAggregatesFilter<"Song"> | $Enums.LiturgicalSeason | null
+  referenceUrl?: Prisma.StringNullableWithAggregatesFilter<"Song"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Song"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Song"> | Date | string
 }
@@ -284,6 +296,7 @@ export type SongCreateInput = {
   content: string
   part: $Enums.LiturgicalPart
   season?: $Enums.LiturgicalSeason | null
+  referenceUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   setlists?: Prisma.SetlistSongCreateNestedManyWithoutSongInput
@@ -297,6 +310,7 @@ export type SongUncheckedCreateInput = {
   content: string
   part: $Enums.LiturgicalPart
   season?: $Enums.LiturgicalSeason | null
+  referenceUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   setlists?: Prisma.SetlistSongUncheckedCreateNestedManyWithoutSongInput
@@ -310,6 +324,7 @@ export type SongUpdateInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   part?: Prisma.EnumLiturgicalPartFieldUpdateOperationsInput | $Enums.LiturgicalPart
   season?: Prisma.NullableEnumLiturgicalSeasonFieldUpdateOperationsInput | $Enums.LiturgicalSeason | null
+  referenceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   setlists?: Prisma.SetlistSongUpdateManyWithoutSongNestedInput
@@ -323,6 +338,7 @@ export type SongUncheckedUpdateInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   part?: Prisma.EnumLiturgicalPartFieldUpdateOperationsInput | $Enums.LiturgicalPart
   season?: Prisma.NullableEnumLiturgicalSeasonFieldUpdateOperationsInput | $Enums.LiturgicalSeason | null
+  referenceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   setlists?: Prisma.SetlistSongUncheckedUpdateManyWithoutSongNestedInput
@@ -336,6 +352,7 @@ export type SongCreateManyInput = {
   content: string
   part: $Enums.LiturgicalPart
   season?: $Enums.LiturgicalSeason | null
+  referenceUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -348,6 +365,7 @@ export type SongUpdateManyMutationInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   part?: Prisma.EnumLiturgicalPartFieldUpdateOperationsInput | $Enums.LiturgicalPart
   season?: Prisma.NullableEnumLiturgicalSeasonFieldUpdateOperationsInput | $Enums.LiturgicalSeason | null
+  referenceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -360,6 +378,7 @@ export type SongUncheckedUpdateManyInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   part?: Prisma.EnumLiturgicalPartFieldUpdateOperationsInput | $Enums.LiturgicalPart
   season?: Prisma.NullableEnumLiturgicalSeasonFieldUpdateOperationsInput | $Enums.LiturgicalSeason | null
+  referenceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -372,6 +391,7 @@ export type SongCountOrderByAggregateInput = {
   content?: Prisma.SortOrder
   part?: Prisma.SortOrder
   season?: Prisma.SortOrder
+  referenceUrl?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -384,6 +404,7 @@ export type SongMaxOrderByAggregateInput = {
   content?: Prisma.SortOrder
   part?: Prisma.SortOrder
   season?: Prisma.SortOrder
+  referenceUrl?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -396,6 +417,7 @@ export type SongMinOrderByAggregateInput = {
   content?: Prisma.SortOrder
   part?: Prisma.SortOrder
   season?: Prisma.SortOrder
+  referenceUrl?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -415,6 +437,10 @@ export type EnumLiturgicalPartFieldUpdateOperationsInput = {
 
 export type NullableEnumLiturgicalSeasonFieldUpdateOperationsInput = {
   set?: $Enums.LiturgicalSeason | null
+}
+
+export type NullableStringFieldUpdateOperationsInput = {
+  set?: string | null
 }
 
 export type DateTimeFieldUpdateOperationsInput = {
@@ -443,6 +469,7 @@ export type SongCreateWithoutSetlistsInput = {
   content: string
   part: $Enums.LiturgicalPart
   season?: $Enums.LiturgicalSeason | null
+  referenceUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -455,6 +482,7 @@ export type SongUncheckedCreateWithoutSetlistsInput = {
   content: string
   part: $Enums.LiturgicalPart
   season?: $Enums.LiturgicalSeason | null
+  referenceUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -483,6 +511,7 @@ export type SongUpdateWithoutSetlistsInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   part?: Prisma.EnumLiturgicalPartFieldUpdateOperationsInput | $Enums.LiturgicalPart
   season?: Prisma.NullableEnumLiturgicalSeasonFieldUpdateOperationsInput | $Enums.LiturgicalSeason | null
+  referenceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -495,6 +524,7 @@ export type SongUncheckedUpdateWithoutSetlistsInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   part?: Prisma.EnumLiturgicalPartFieldUpdateOperationsInput | $Enums.LiturgicalPart
   season?: Prisma.NullableEnumLiturgicalSeasonFieldUpdateOperationsInput | $Enums.LiturgicalSeason | null
+  referenceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -538,6 +568,7 @@ export type SongSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   content?: boolean
   part?: boolean
   season?: boolean
+  referenceUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   setlists?: boolean | Prisma.Song$setlistsArgs<ExtArgs>
@@ -552,6 +583,7 @@ export type SongSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   content?: boolean
   part?: boolean
   season?: boolean
+  referenceUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["song"]>
@@ -564,6 +596,7 @@ export type SongSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   content?: boolean
   part?: boolean
   season?: boolean
+  referenceUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["song"]>
@@ -576,11 +609,12 @@ export type SongSelectScalar = {
   content?: boolean
   part?: boolean
   season?: boolean
+  referenceUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type SongOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "artist" | "originalKey" | "content" | "part" | "season" | "createdAt" | "updatedAt", ExtArgs["result"]["song"]>
+export type SongOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "artist" | "originalKey" | "content" | "part" | "season" | "referenceUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["song"]>
 export type SongInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   setlists?: boolean | Prisma.Song$setlistsArgs<ExtArgs>
   _count?: boolean | Prisma.SongCountOutputTypeDefaultArgs<ExtArgs>
@@ -601,6 +635,7 @@ export type $SongPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     content: string
     part: $Enums.LiturgicalPart
     season: $Enums.LiturgicalSeason | null
+    referenceUrl: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["song"]>
@@ -1034,6 +1069,7 @@ export interface SongFieldRefs {
   readonly content: Prisma.FieldRef<"Song", 'String'>
   readonly part: Prisma.FieldRef<"Song", 'LiturgicalPart'>
   readonly season: Prisma.FieldRef<"Song", 'LiturgicalSeason'>
+  readonly referenceUrl: Prisma.FieldRef<"Song", 'String'>
   readonly createdAt: Prisma.FieldRef<"Song", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Song", 'DateTime'>
 }
