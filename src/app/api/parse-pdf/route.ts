@@ -89,32 +89,25 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // ── 3. Extract text with pdf-parse v2 ──────────────────────────────────
-    // pdf-parse v2 uses a class-based API
-    require('pdf-parse/worker');
-    const { PDFParse } = require('pdf-parse');
-    const parser = new PDFParse({ data: buffer, verbosity: -1 });
-    await parser.load();
+    // ── 3. Extract text with pdf2json ──────────────────────────────────────────
+    const PDFParser = require("pdf2json");
 
-    // Use pageJoiner to insert markers between pages
-    const textResult = await parser.getText({
-      pageJoiner: '\n--- PAGE {PAGE_NUM} ---\n',
+    const rawText: string = await new Promise((resolve, reject) => {
+      // O segundo argumento "1" força o parsing como texto puro (raw text)
+      const pdfParser = new PDFParser(null, 1);
+      
+      pdfParser.on("pdfParser_dataError", (errData: any) => reject(new Error(errData.parserError)));
+      pdfParser.on("pdfParser_dataReady", () => {
+        resolve(pdfParser.getRawTextContent());
+      });
+      
+      pdfParser.parseBuffer(buffer);
     });
 
-    let rawText: string;
-    if (typeof textResult === 'string') {
-      rawText = textResult;
-    } else if (textResult && Array.isArray(textResult.pages)) {
-      rawText = textResult.pages
-        .map((p: { text: string; num: number }) => `--- PAGE ${p.num} ---\n${p.text}`)
-        .join('\n');
-    } else {
-      rawText = String(textResult ?? '');
-    }
-
     // ── 4. Split by page markers ───────────────────────────────────────────
+    // pdf2json utiliza o separador padrão "----------------Page (X)----------------"
     const rawSongs = rawText
-      .split(/---\s*PAGE\s*\d+\s*---/i)
+      .split(/----------------Page \(\d+\)----------------/i)
       .map((block) => block.trim())
       .filter((block) => block.length > 20); // Ignore tiny/empty fragments
 
