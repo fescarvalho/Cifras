@@ -26,13 +26,14 @@ interface MainAppProps {
 export default function MainApp({ initialSongs, initialSetlists }: MainAppProps) {
   const router = useRouter();
   
-  // Use Dexie as the single source of truth for songs
+  // Use Dexie as the single source of truth for songs and setlists
   const dexieSongs = useLiveQuery(() => db.songs.orderBy('title').toArray(), []);
+  const dexieSetlists = useLiveQuery(() => db.setlists.orderBy('date').reverse().toArray(), []);
   
-  // We'll use dexieSongs if available, otherwise initialSongs for SSR/first load
+  // We'll use dexie data if available, otherwise initial data for SSR/first load
   const songs = dexieSongs || (initialSongs as any[]);
+  const setlists = dexieSetlists || (initialSetlists as any[]);
   
-  const [setlists, setSetlists] = useState<any[]>(initialSetlists);
   const { isOnline } = useOfflineSync();
 
   // Filter States
@@ -65,9 +66,6 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
       setDarkMode(false);
       document.documentElement.classList.remove("dark");
     }
-
-    // Register service worker for PWA is handled by serwist in NextConfig mostly, 
-    // but if we need a custom registration it could go here. Serwist handles it automatically usually.
   }, []);
 
   const toggleTheme = () => {
@@ -82,12 +80,10 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
     }
   };
 
-  // Re-fetch data from DB on changes (Setlists mainly, songs handled by Dexie sync)
+  // Re-fetch data from DB on changes
   const refreshData = async () => {
-    if (!navigator.onLine) return; // Can't refresh from server if offline
-    // We could manually trigger a song sync here, but the OfflineSyncManager handles it
-    const freshSetlists = await getSetlists();
-    setSetlists(freshSetlists);
+    if (!navigator.onLine) return; 
+    // Mostly handled by dexie now, but can be used as hook
   };
 
   // Client-side instant filter of songs
@@ -113,14 +109,22 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
       setSelectedSetlistId("");
     }
 
-    // Optimistic delete
-    setSetlists(prev => prev.filter(s => s.id !== id));
+    // Optimistic local delete
+    await db.setlists.delete(id);
 
-    try {
-      await deleteSetlist(id);
-      refreshData();
-    } catch (err) {
-      refreshData();
+    if (isOnline) {
+      try {
+        await deleteSetlist(id);
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      // Queue offline operation
+      await db.syncQueue.add({
+        action: 'DELETE_SETLIST',
+        payload: { setlistId: id },
+        createdAt: new Date()
+      });
     }
   };
 

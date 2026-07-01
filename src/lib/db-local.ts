@@ -15,13 +15,44 @@ export interface LocalSong {
   isSynced: boolean;
 }
 
+export interface LocalSetlistSong {
+  id: string;
+  setlistId: string;
+  songId: string;
+  order: number;
+  song: LocalSong;
+}
+
+export interface LocalSetlist {
+  id: string;
+  title: string;
+  date: Date;
+  songs: LocalSetlistSong[];
+  createdAt: Date;
+  updatedAt: Date;
+  isSynced: boolean;
+}
+
+export type SyncAction = 'CREATE_SETLIST' | 'UPDATE_SETLIST_ORDER' | 'REMOVE_SONG_FROM_SETLIST' | 'ADD_SONG_TO_SETLIST' | 'DELETE_SETLIST';
+
+export interface SyncOperation {
+  id?: number; // Auto-incremented by Dexie
+  action: SyncAction;
+  payload: any;
+  createdAt: Date;
+}
+
 const db = new Dexie('CifrasAppDB') as Dexie & {
   songs: EntityTable<LocalSong, 'id'>;
+  setlists: EntityTable<LocalSetlist, 'id'>;
+  syncQueue: EntityTable<SyncOperation, 'id'>;
 };
 
 // Schema declaration:
-db.version(1).stores({
-  songs: 'id, title, artist, part, season' // Primary key and indexed props
+db.version(2).stores({
+  songs: 'id, title, artist, part, season', // Primary key and indexed props
+  setlists: 'id, date', 
+  syncQueue: '++id, action, createdAt'
 });
 
 export { db };

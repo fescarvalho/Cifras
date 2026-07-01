@@ -5,6 +5,8 @@ import { Setlist, Song } from "@/generated/prisma/client";
 import { getSetlistWithSongs, removeSongFromSetlist, updateSetlistOrder } from "@/app/actions";
 import { PART_LABELS, PART_COLORS } from "@/utils/labels";
 import SongViewer from "./SongViewer";
+import { db } from "@/lib/db-local";
+import { useOfflineSync } from "./OfflineSyncManager";
 
 interface SetlistManagerProps {
   setlistId: string;
@@ -17,7 +19,7 @@ interface SetlistSongWithModel {
   setlistId: string;
   songId: string;
   order: number;
-  song: Song;
+  song: any;
 }
 
 export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }: SetlistManagerProps) {
@@ -29,18 +31,30 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
   const [activePerformanceSongIdx, setActivePerformanceSongIdx] = useState(0);
   const [perfSemitones, setPerfSemitones] = useState(0);
   const [perfFontSize, setPerfFontSize] = useState(14);
-  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const [selectedSong, setSelectedSong] = useState<any | null>(null);
+
+  const { isOnline } = useOfflineSync();
 
   const loadSetlistDetails = async () => {
     setLoading(true);
     setError("");
     try {
-      const data = await getSetlistWithSongs(setlistId);
-      if (data) {
-        setSetlist(data);
-        setSongs(data.songs as any[]);
+      // First try to load from local db
+      const localSetlist = await db.setlists.get(setlistId);
+      
+      if (localSetlist) {
+        setSetlist(localSetlist);
+        setSongs([...localSetlist.songs].sort((a, b) => a.order - b.order));
+      } else if (isOnline) {
+        const data = await getSetlistWithSongs(setlistId);
+        if (data) {
+          setSetlist(data);
+          setSongs(data.songs as any[]);
+        } else {
+          setError("Repertório não encontrado.");
+        }
       } else {
-        setError("Repertório não encontrado.");
+        setError("Repertório não encontrado localmente.");
       }
     } catch (e: any) {
       setError(`Erro ao carregar detalhes: ${e.message}`);
@@ -62,22 +76,41 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
     const temp = newSongs[index];
     newSongs[index] = newSongs[targetIdx];
     newSongs[targetIdx] = temp;
+    
+    // Update orders in array
+    newSongs.forEach((s, idx) => {
+      s.order = idx + 1;
+    });
 
     // Optimistic state update
     setSongs(newSongs);
 
-    // Save to DB
+    // Save to Local DB
+    if (setlist) {
+      await db.setlists.update(setlistId, { songs: newSongs });
+    }
+
     const songIdsInOrder = newSongs.map(s => s.songId);
-    try {
-      const res = await updateSetlistOrder(setlistId, songIdsInOrder);
-      if (!res.success) {
-        // Rollback
+    
+    if (isOnline && !setlistId.startsWith('temp_')) {
+      try {
+        const res = await updateSetlistOrder(setlistId, songIdsInOrder);
+        if (!res.success) {
+          loadSetlistDetails();
+        } else if (onRefreshSetlists) {
+          onRefreshSetlists();
+        }
+      } catch (e) {
         loadSetlistDetails();
-      } else if (onRefreshSetlists) {
-        onRefreshSetlists();
       }
-    } catch (e) {
-      loadSetlistDetails();
+    } else {
+      // Queue offline
+      await db.syncQueue.add({
+        action: 'UPDATE_SETLIST_ORDER',
+        payload: { setlistId, songIdsInOrder },
+        createdAt: new Date()
+      });
+      if (onRefreshSetlists) onRefreshSetlists();
     }
   };
 
@@ -86,18 +119,32 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
     if (!confirm) return;
 
     // Optimistic delete
-    setSongs(prev => prev.filter(s => s.songId !== songId));
+    const newSongs = songs.filter(s => s.songId !== songId);
+    setSongs(newSongs);
 
-    try {
-      const res = await removeSongFromSetlist(setlistId, songId);
-      if (!res.success) {
-        loadSetlistDetails();
-      } else {
-        if (onRefreshSetlists) onRefreshSetlists();
+    if (setlist) {
+      await db.setlists.update(setlistId, { songs: newSongs });
+    }
+
+    if (isOnline && !setlistId.startsWith('temp_')) {
+      try {
+        const res = await removeSongFromSetlist(setlistId, songId);
+        if (!res.success) {
+          loadSetlistDetails();
+        } else {
+          if (onRefreshSetlists) onRefreshSetlists();
+          loadSetlistDetails();
+        }
+      } catch (e) {
         loadSetlistDetails();
       }
-    } catch (e) {
-      loadSetlistDetails();
+    } else {
+      await db.syncQueue.add({
+        action: 'REMOVE_SONG_FROM_SETLIST',
+        payload: { setlistId, songId },
+        createdAt: new Date()
+      });
+      if (onRefreshSetlists) onRefreshSetlists();
     }
   };
 
@@ -153,7 +200,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
                     : "bg-slate-900 text-slate-400 hover:bg-slate-850"
                 }`}
               >
-                {idx + 1}. {PART_LABELS[s.song.part]}
+                {idx + 1}. {PART_LABELS[s.song.part as keyof typeof PART_LABELS]}
               </button>
             ))}
           </div>
@@ -312,8 +359,8 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${PART_COLORS[s.song.part]}`}>
-                    {PART_LABELS[s.song.part]}
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${PART_COLORS[s.song.part as keyof typeof PART_COLORS]}`}>
+                    {PART_LABELS[s.song.part as keyof typeof PART_LABELS]}
                   </span>
 
                   {/* Ordering arrows */}

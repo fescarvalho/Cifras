@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { Music, FileText, X } from "lucide-react";
+import { Music, FileText, ListMusic, X } from "lucide-react";
 
 interface ActionSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onNewManual: () => void;
-  onNewPdf: () => void;
+  onNewPdf?: () => void;
+  mode?: "song" | "setlist";
 }
 
-export default function ActionSheet({ isOpen, onClose, onNewManual, onNewPdf }: ActionSheetProps) {
+export default function ActionSheet({ isOpen, onClose, onNewManual, onNewPdf, mode = "song" }: ActionSheetProps) {
   const [show, setShow] = useState(isOpen);
 
   useEffect(() => {
@@ -48,7 +49,9 @@ export default function ActionSheet({ isOpen, onClose, onNewManual, onNewPdf }: 
             <X size={18} />
           </button>
 
-          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2 px-2">Adicionar Cifra</h3>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2 px-2">
+            {mode === "song" ? "Adicionar Cifra" : "Novo"}
+          </h3>
 
           <button
             onClick={() => {
@@ -58,29 +61,35 @@ export default function ActionSheet({ isOpen, onClose, onNewManual, onNewPdf }: 
             className="flex items-center gap-4 w-full p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors active:scale-95"
           >
             <div className="bg-violet-100 dark:bg-violet-900/40 p-3 rounded-full text-violet-600 dark:text-violet-400">
-              <Music size={24} />
+              {mode === "song" ? <Music size={24} /> : <ListMusic size={24} />}
             </div>
             <div>
-              <div className="font-semibold text-slate-900 dark:text-slate-100">Nova Música Manual</div>
-              <div className="text-sm text-slate-500 dark:text-slate-400">Digitar ou colar a cifra e letra</div>
+              <div className="font-semibold text-slate-900 dark:text-slate-100">
+                {mode === "song" ? "Nova Música Manual" : "Novo Repertório (Missa)"}
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400">
+                {mode === "song" ? "Digitar ou colar a cifra e letra" : "Criar uma lista de músicas para tocar"}
+              </div>
             </div>
           </button>
 
-          <button
-            onClick={() => {
-              onClose();
-              onNewPdf();
-            }}
-            className="flex items-center gap-4 w-full p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors active:scale-95"
-          >
-            <div className="bg-emerald-100 dark:bg-emerald-900/40 p-3 rounded-full text-emerald-600 dark:text-emerald-400">
-              <FileText size={24} />
-            </div>
-            <div>
-              <div className="font-semibold text-slate-900 dark:text-slate-100">Importar de PDF</div>
-              <div className="text-sm text-slate-500 dark:text-slate-400">Extrair cifra automaticamente</div>
-            </div>
-          </button>
+          {mode === "song" && onNewPdf && (
+            <button
+              onClick={() => {
+                onClose();
+                onNewPdf();
+              }}
+              className="flex items-center gap-4 w-full p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors active:scale-95"
+            >
+              <div className="bg-emerald-100 dark:bg-emerald-900/40 p-3 rounded-full text-emerald-600 dark:text-emerald-400">
+                <FileText size={24} />
+              </div>
+              <div>
+                <div className="font-semibold text-slate-900 dark:text-slate-100">Importar de PDF</div>
+                <div className="text-sm text-slate-500 dark:text-slate-400">Extrair cifra automaticamente</div>
+              </div>
+            </button>
+          )}
           
           {/* Extra padding for safe area */}
           <div className="h-6" />

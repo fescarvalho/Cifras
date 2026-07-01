@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { createSetlist } from "@/app/actions";
 import { useOfflineSync } from "./OfflineSyncManager";
+import { db } from "@/lib/db-local";
 
 interface CreateSetlistModalProps {
   onClose: () => void;
@@ -22,10 +23,6 @@ export default function CreateSetlistModal({ onClose, onSuccess }: CreateSetlist
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isOnline) {
-      setError("Sem conexão para salvar.");
-      return;
-    }
     if (!title || !date) {
       setError("Por favor, preencha todos os campos obrigatórios.");
       return;
@@ -33,16 +30,38 @@ export default function CreateSetlistModal({ onClose, onSuccess }: CreateSetlist
     setError("");
     setIsSubmitting(true);
     try {
-      const res = await createSetlist(title, date);
+      if (isOnline) {
+        const res = await createSetlist(title, date);
+        if (res.success) {
+          onSuccess();
+          onClose();
+        } else {
+          setError(`Erro: ${res.error}`);
+        }
+      } else {
+        // Offline creation
+        const tempId = `temp_${Date.now()}`;
+        await db.setlists.add({
+          id: tempId,
+          title,
+          date: new Date(date),
+          songs: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isSynced: false
+        });
 
-      if (res.success) {
+        await db.syncQueue.add({
+          action: 'CREATE_SETLIST',
+          payload: { title, date },
+          createdAt: new Date()
+        });
+
         onSuccess();
         onClose();
-      } else {
-        setError(`Erro: ${res.error}`);
       }
     } catch (e: any) {
-      setError(`Erro ao conectar: ${e.message}`);
+      setError(`Erro: ${e.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -69,6 +88,12 @@ export default function CreateSetlistModal({ onClose, onSuccess }: CreateSetlist
           {error && (
             <div className="bg-rose-50 border border-rose-200 text-rose-800 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-400 p-3 rounded-xl text-xs font-semibold text-center">
               {error}
+            </div>
+          )}
+
+          {!isOnline && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-900/50 dark:text-amber-400 p-3 rounded-xl text-xs font-semibold text-center">
+              Modo Offline: O repertório será sincronizado quando houver conexão.
             </div>
           )}
 

@@ -9,6 +9,9 @@ import CreateSetlistModal from "./CreateSetlistModal";
 import BottomNav from "./BottomNav";
 import ActionSheet from "./ActionSheet";
 import { useRouter } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/lib/db-local";
+import { useOfflineSync } from "./OfflineSyncManager";
 
 interface RepertoriosAppProps {
   initialSetlists: Setlist[];
@@ -16,11 +19,19 @@ interface RepertoriosAppProps {
 
 export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps) {
   const router = useRouter();
-  const [setlists, setSetlists] = useState<any[]>(initialSetlists);
+  
+  // Use Dexie as source of truth for setlists (offline support)
+  const dexieSetlists = useLiveQuery(() => db.setlists.orderBy('date').reverse().toArray(), []);
+  
+  // Use dexie if available, fallback to initialSetlists
+  const setlists = dexieSetlists || (initialSetlists as any[]);
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showCreateSetlist, setShowCreateSetlist] = useState(false);
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  
+  const { isOnline } = useOfflineSync();
 
   // Initialize theme
   useEffect(() => {
@@ -48,11 +59,6 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
     }
   };
 
-  const refreshData = async () => {
-    const freshSetlists = await getSetlists();
-    setSetlists(freshSetlists);
-  };
-
   const handleToggle = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
@@ -66,14 +72,22 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
       setExpandedId(null);
     }
 
-    // Optimistic delete
-    setSetlists((prev) => prev.filter((s) => s.id !== id));
+    // Optimistic local delete
+    await db.setlists.delete(id);
 
-    try {
-      await deleteSetlist(id);
-      refreshData();
-    } catch (err) {
-      refreshData();
+    if (isOnline) {
+      try {
+        await deleteSetlist(id);
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      // Queue offline operation
+      await db.syncQueue.add({
+        action: 'DELETE_SETLIST',
+        payload: { setlistId: id },
+        createdAt: new Date()
+      });
     }
   };
 
@@ -167,9 +181,14 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
                     <div className="min-w-0 pr-2">
                       <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 truncate flex items-center gap-2">
                         {s.title}
+                        {!s.isSynced && (
+                          <span className="text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-1.5 py-0.5 rounded ml-2">
+                            Offline
+                          </span>
+                        )}
                         {isExpanded && (
-                          <span className="text-[10px] font-semibold bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300 px-1.5 py-0.5 rounded">
-                            Ativo
+                          <span className="text-[10px] font-semibold bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300 px-1.5 py-0.5 rounded ml-2">
+                            Aberto
                           </span>
                         )}
                       </h3>
@@ -216,7 +235,6 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
                     <div className="border-t border-slate-100 dark:border-slate-800/80 transition-all duration-300">
                       <SetlistManager
                         setlistId={s.id}
-                        onRefreshSetlists={refreshData}
                       />
                     </div>
                   )}
@@ -231,7 +249,7 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
       {showCreateSetlist && (
         <CreateSetlistModal
           onClose={() => setShowCreateSetlist(false)}
-          onSuccess={refreshData}
+          onSuccess={() => setShowCreateSetlist(false)}
         />
       )}
 
@@ -240,7 +258,7 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
         isOpen={showActionSheet}
         onClose={() => setShowActionSheet(false)}
         onNewManual={() => setShowCreateSetlist(true)}
-        onNewPdf={() => router.push("/repertorios/importar")}
+        mode="setlist"
       />
     </div>
   );

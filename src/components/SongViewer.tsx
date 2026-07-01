@@ -254,15 +254,50 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
     setIsAdding(true);
     setMessage({ text: "", type: "" });
     try {
-      const res = await addSongToSetlist(selectedSetlistId, song.id);
-      if (res.success) {
-        setMessage({ text: "Adicionada ao repertório!", type: "success" });
-        setTimeout(() => setMessage({ text: "", type: "" }), 3000);
+      if (isOnline && !selectedSetlistId.startsWith('temp_')) {
+        const res = await addSongToSetlist(selectedSetlistId, song.id);
+        if (res.success) {
+          setMessage({ text: "Adicionada ao repertório!", type: "success" });
+          setTimeout(() => setMessage({ text: "", type: "" }), 3000);
+        } else {
+          setMessage({ text: `Erro: ${res.error}`, type: "error" });
+        }
       } else {
-        setMessage({ text: `Erro: ${res.error}`, type: "error" });
+        // Offline add to setlist
+        const localSetlist = await db.setlists.get(selectedSetlistId);
+        if (localSetlist) {
+          // Check if already in setlist
+          if (localSetlist.songs.some(s => s.songId === song.id)) {
+             setMessage({ text: "A música já está no repertório.", type: "error" });
+             setIsAdding(false);
+             return;
+          }
+          
+          const newOrder = localSetlist.songs.length > 0 ? Math.max(...localSetlist.songs.map(s => s.order)) + 1 : 1;
+          localSetlist.songs.push({
+            id: `temp_song_${Date.now()}`,
+            setlistId: selectedSetlistId,
+            songId: song.id,
+            order: newOrder,
+            song: song as any
+          });
+          
+          await db.setlists.put(localSetlist);
+          
+          await db.syncQueue.add({
+            action: 'ADD_SONG_TO_SETLIST',
+            payload: { setlistId: selectedSetlistId, songId: song.id },
+            createdAt: new Date()
+          });
+          
+          setMessage({ text: "Adicionada offline ao repertório!", type: "success" });
+          setTimeout(() => setMessage({ text: "", type: "" }), 3000);
+        } else {
+          setMessage({ text: "Repertório local não encontrado.", type: "error" });
+        }
       }
     } catch (e: any) {
-      setMessage({ text: `Erro de conexão: ${e.message}`, type: "error" });
+      setMessage({ text: `Erro: ${e.message}`, type: "error" });
     } finally {
       setIsAdding(false);
     }
