@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 /**
  * Regex to match YouTube URLs (youtube.com/watch, youtu.be, youtube.com/shorts, etc.)
@@ -71,10 +72,10 @@ export async function POST(request: Request) {
   try {
     // ── 1. Validate input ──────────────────────────────────────────────────
     const formData = await request.formData();
-    const file = formData.get('file') as File | null;
+    const file = formData.get('file') as File;
 
     if (!file) {
-      return NextResponse.json({ error: 'Nenhum arquivo enviado.' }, { status: 400 });
+      return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
     }
 
     if (file.type !== 'application/pdf') {
@@ -145,10 +146,10 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ songs: extractedSongs });
-  } catch (error) {
-    console.error('Erro ao fazer parse do PDF:', error);
+  } catch (error: any) {
+    console.error("ERRO PDF-PARSE:", error);
     return NextResponse.json(
-      { error: 'Erro ao processar o arquivo PDF. Verifique se o ficheiro não está corrompido.' },
+      { error: error.message || "Erro desconhecido ao processar o PDF" },
       { status: 500 }
     );
   }
