@@ -280,9 +280,16 @@ export async function updateSetlistOrder(setlistId: string, songIdsInOrder: stri
  */
 export async function deleteSetlist(id: string) {
   try {
-    await prisma.setlist.delete({
-      where: { id },
-    });
+    await prisma.$transaction([
+      // 1º Passo: Apaga todos os vínculos de músicas dessa missa específica
+      prisma.setlistSong.deleteMany({
+        where: { setlistId: id }
+      }),
+      // 2º Passo: Agora sim, apaga o card/repertório da missa com segurança
+      prisma.setlist.delete({
+        where: { id }
+      })
+    ]);
     revalidatePath("/");
     return { success: true };
   } catch (error: any) {
