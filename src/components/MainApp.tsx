@@ -13,6 +13,10 @@ import ActionSheet from "./ActionSheet";
 import { useRouter } from "next/navigation";
 import { PART_LABELS, PART_COLORS, SEASON_LABELS, SEASON_COLORS } from "@/utils/labels";
 import { getSongs, getSetlists, deleteSetlist, deleteSong } from "@/app/actions";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/lib/db-local";
+import { useOfflineSync } from "./OfflineSyncManager";
+import { Cloud, CloudOff } from "lucide-react";
 
 interface MainAppProps {
   initialSongs: Song[];
@@ -21,8 +25,15 @@ interface MainAppProps {
 
 export default function MainApp({ initialSongs, initialSetlists }: MainAppProps) {
   const router = useRouter();
-  const [songs, setSongs] = useState<Song[]>(initialSongs);
+  
+  // Use Dexie as the single source of truth for songs
+  const dexieSongs = useLiveQuery(() => db.songs.orderBy('title').toArray(), []);
+  
+  // We'll use dexieSongs if available, otherwise initialSongs for SSR/first load
+  const songs = dexieSongs || (initialSongs as any[]);
+  
   const [setlists, setSetlists] = useState<any[]>(initialSetlists);
+  const { isOnline } = useOfflineSync();
 
   // Filter States
   const [search, setSearch] = useState("");
@@ -55,19 +66,8 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
       document.documentElement.classList.remove("dark");
     }
 
-    // Register service worker for PWA
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js").then(
-          (registration) => {
-            console.log("Service Worker registered: ", registration.scope);
-          },
-          (err) => {
-            console.log("Service Worker registration failed: ", err);
-          }
-        );
-      });
-    }
+    // Register service worker for PWA is handled by serwist in NextConfig mostly, 
+    // but if we need a custom registration it could go here. Serwist handles it automatically usually.
   }, []);
 
   const toggleTheme = () => {
@@ -82,10 +82,10 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
     }
   };
 
-  // Re-fetch data from DB on changes
+  // Re-fetch data from DB on changes (Setlists mainly, songs handled by Dexie sync)
   const refreshData = async () => {
-    const freshSongs = await getSongs();
-    setSongs(freshSongs);
+    if (!navigator.onLine) return; // Can't refresh from server if offline
+    // We could manually trigger a song sync here, but the OfflineSyncManager handles it
     const freshSetlists = await getSetlists();
     setSetlists(freshSetlists);
   };
@@ -129,16 +129,22 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
     const confirmed = window.confirm(`Excluir "${title}" permanentemente? Esta ação não pode ser desfeita.`);
     if (!confirmed) return;
 
+    if (!isOnline) {
+      alert("Sem conexão para excluir a música do servidor.");
+      return;
+    }
+
     // Close viewer if this song is open
     if (selectedSong?.id === id) setSelectedSong(null);
 
-    // Optimistic delete
-    setSongs(prev => prev.filter(s => s.id !== id));
+    // Optimistic delete local
+    await db.songs.delete(id);
 
     try {
       await deleteSong(id);
     } catch (err) {
-      refreshData(); // Revert on error
+      console.error(err);
+      // Let sync resolve the state later
     }
   };
 
@@ -165,6 +171,17 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Sync Status Indicator */}
+            <div className="flex items-center text-xs px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800" title={isOnline ? "Online - Dados atualizados" : "Offline - Usando cache local"}>
+              {isOnline ? (
+                <Cloud className="w-4 h-4 text-emerald-500 mr-1.5" />
+              ) : (
+                <CloudOff className="w-4 h-4 text-amber-500 mr-1.5" />
+              )}
+              <span className="hidden sm:inline font-medium text-slate-600 dark:text-slate-300">
+                {isOnline ? "Online" : "Offline"}
+              </span>
+            </div>
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -195,7 +212,13 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
 
             {/* Quick Action Button (Hidden on mobile) */}
             <button
-              onClick={() => setShowActionSheet(true)}
+              onClick={() => {
+                if (!isOnline) {
+                  alert("Sem conexão para criar nova cifra.");
+                  return;
+                }
+                setShowActionSheet(true);
+              }}
               className="hidden md:flex bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm items-center gap-1.5 transition-all shadow-md shadow-violet-500/10 active:scale-95"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -269,12 +292,12 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5 mt-auto">
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${PART_COLORS[song.part]}`}>
-                      {PART_LABELS[song.part]}
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${PART_COLORS[song.part as keyof typeof PART_COLORS]}`}>
+                      {PART_LABELS[song.part as keyof typeof PART_LABELS]}
                     </span>
                     {song.season && (
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${SEASON_COLORS[song.season]}`}>
-                        {SEASON_LABELS[song.season]}
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${SEASON_COLORS[song.season as keyof typeof SEASON_COLORS]}`}>
+                        {SEASON_LABELS[song.season as keyof typeof SEASON_LABELS]}
                       </span>
                     )}
                   </div>
@@ -321,7 +344,13 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
         />
       )}
 
-      <BottomNav onAddClick={() => setShowActionSheet(true)} />
+      <BottomNav onAddClick={() => {
+        if (!isOnline) {
+          alert("Sem conexão para criar nova cifra.");
+          return;
+        }
+        setShowActionSheet(true);
+      }} />
       <ActionSheet
         isOpen={showActionSheet}
         onClose={() => setShowActionSheet(false)}

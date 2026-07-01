@@ -5,6 +5,8 @@ import { Song, Setlist } from "@/generated/prisma/client";
 import { transposeLine, getPreferredScale, isChordLine, sanitizePdfText } from "@/utils/chordTransposer";
 import { PART_LABELS, PART_COLORS, SEASON_LABELS } from "@/utils/labels";
 import { addSongToSetlist, updateSongContent } from "@/app/actions";
+import { useOfflineSync } from "./OfflineSyncManager";
+import { db } from "@/lib/db-local";
 
 interface SongViewerProps {
   song: Song;
@@ -266,7 +268,13 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
     }
   };
 
+  const { isOnline } = useOfflineSync();
+
   const handleSaveEdit = async () => {
+    if (!isOnline) {
+      alert("Sem conexão para salvar.");
+      return;
+    }
     setSaveStatus("saving");
     try {
       const dataToUpdate = {
@@ -281,6 +289,9 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
       const res = await updateSongContent(song.id, dataToUpdate);
       if (res.success) {
         setSaveStatus("saved");
+        // Update local Dexie first for instant read feedback
+        await db.songs.update(song.id, dataToUpdate as any);
+
         // Patch the local song object so renderedLines and UI re-computes with new content
         song.content = editContent;
         song.title = editTitle;

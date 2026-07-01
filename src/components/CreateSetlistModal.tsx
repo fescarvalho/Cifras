@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { createSetlist } from "@/app/actions";
+import { useOfflineSync } from "./OfflineSyncManager";
 
 interface CreateSetlistModalProps {
   onClose: () => void;
@@ -9,6 +10,7 @@ interface CreateSetlistModalProps {
 }
 
 export default function CreateSetlistModal({ onClose, onSuccess }: CreateSetlistModalProps) {
+  const { isOnline } = useOfflineSync();
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(() => {
     // Default to today
@@ -20,6 +22,10 @@ export default function CreateSetlistModal({ onClose, onSuccess }: CreateSetlist
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isOnline) {
+      setError("Sem conexão para salvar.");
+      return;
+    }
     if (!title || !date) {
       setError("Por favor, preencha todos os campos obrigatórios.");
       return;

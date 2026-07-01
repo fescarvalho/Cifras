@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { LiturgicalPart, LiturgicalSeason } from "@/generated/prisma/client";
 import { PART_LABELS, SEASON_LABELS } from "@/utils/labels";
 import { createSong } from "@/app/actions";
+import { useOfflineSync } from "./OfflineSyncManager";
 
 interface CreateSongModalProps {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface CreateSongModalProps {
 }
 
 export default function CreateSongModal({ onClose, onSuccess }: CreateSongModalProps) {
+  const { isOnline } = useOfflineSync();
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [originalKey, setOriginalKey] = useState("C");
@@ -22,6 +24,10 @@ export default function CreateSongModal({ onClose, onSuccess }: CreateSongModalP
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isOnline) {
+      setError("Sem conexão para salvar.");
+      return;
+    }
     if (!title || !artist || !content) {
       setError("Por favor, preencha todos os campos obrigatórios.");
       return;

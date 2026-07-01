@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
@@ -12,14 +12,18 @@
     "@prisma/adapter-better-sqlite3": "^7.8.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@serwist/next": "^9.5.11",
     "better-sqlite3": "^12.11.1",
+    "dexie": "^4.4.4",
+    "dexie-react-hooks": "^4.4.0",
     "lucide-react": "^1.22.0",
     "next": "16.2.9",
     "pdf-parse": "^2.4.5",
     "pdf2json": "^4.0.3",
     "pg": "^8.22.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "serwist": "^9.5.11"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
