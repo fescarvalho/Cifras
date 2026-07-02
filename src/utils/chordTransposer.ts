@@ -23,7 +23,7 @@ const NOTE_TO_SEMITONE: { [key: string]: number } = {
  * - Slash / inverted bass: /A, /F#, /Cb
  */
 const CHORD_REGEX =
-  /^\(?[A-G](?:#|b)?(?:(?:maj|min|aug|dim|sus|add)(?:\d{1,2})?|[mMº°\+])?(?:\d{1,2}\+?)?(?:(?:b|#)(?:5|9|11|13))*(?:\([^)]{1,10}\))?(?:\/[A-G](?:#|b)?)?\)?$/;
+  /^\(?[A-G](?:#|b)?(?:(?:maj|min|aug|dim|sus|add)(?:\d{1,2})?|[mMº°\+])?(?:\d{1,2}(?:M|\+?)?)?(?:(?:b|#)(?:5|9|11|13))*(?:\([^)]{1,10}\))?(?:\/[A-G](?:#|b)?)?\)?$/;
 
 /** Tokens that are structural separators and do not count as chords or invalid words. */
 const STRUCTURAL_RE = /^[|:\-\[\]()+\/]+$/;
