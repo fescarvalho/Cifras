@@ -180,10 +180,10 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
         <div className="bg-slate-900 border-b border-slate-800 px-2 py-1.5 flex items-center gap-2">
           <button
             onClick={() => setIsPerformanceMode(false)}
-            className="bg-slate-800 hover:bg-slate-700 p-1.5 rounded-lg text-slate-200 shrink-0"
+            className="bg-slate-800 active:bg-slate-700 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-slate-200 shrink-0 active:scale-95 transition-all"
             title="Sair do Modo de Execução"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -197,8 +197,8 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
                 className={`text-[10px] font-semibold px-2 py-1.5 rounded-md transition-all whitespace-nowrap shrink-0 ${
                   idx === activePerformanceSongIdx
                     ? "bg-violet-600 text-white font-bold"
-                    : "bg-slate-900 text-slate-400 hover:bg-slate-850"
-                }`}
+                    : "bg-slate-900 text-slate-400 active:bg-slate-850"
+                } min-h-[44px] flex items-center`}
               >
                 {idx + 1}. {PART_LABELS[s.song.part as keyof typeof PART_LABELS]}
               </button>
@@ -222,7 +222,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
           <button
             onClick={() => setActivePerformanceSongIdx(prev => Math.max(0, prev - 1))}
             disabled={activePerformanceSongIdx === 0}
-            className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white font-bold py-2 px-3 rounded-lg transition-all select-none text-sm"
+            className="flex items-center justify-center gap-1 bg-slate-800 active:bg-slate-700 disabled:opacity-30 text-white font-bold py-2 px-3 min-h-[44px] rounded-lg transition-all select-none text-sm active:scale-95"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -235,17 +235,17 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
             {/* Transpose */}
             <button
               onClick={() => setPerfSemitones(s => s - 1)}
-              className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-1.5 px-2 rounded-md text-xs transition-all active:scale-95"
+              className="bg-slate-800 active:bg-slate-700 text-white font-bold min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md text-sm transition-all active:scale-95"
               title="Transpor -1"
             >
               −
             </button>
-            <span className="text-[10px] font-mono font-bold text-orange-400 min-w-[28px] text-center">
+            <span className="text-[12px] font-mono font-bold text-orange-400 min-w-[32px] text-center">
               {perfSemitones !== 0 ? (perfSemitones > 0 ? `+${perfSemitones}` : perfSemitones) : "Tom"}
             </span>
             <button
               onClick={() => setPerfSemitones(s => s + 1)}
-              className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-1.5 px-2 rounded-md text-xs transition-all active:scale-95"
+              className="bg-slate-800 active:bg-slate-700 text-white font-bold min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md text-sm transition-all active:scale-95"
               title="Transpor +1"
             >
               +
@@ -256,15 +256,15 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
             {/* Font size */}
             <button
               onClick={() => setPerfFontSize(f => Math.max(10, f - 1))}
-              className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-1.5 px-2 rounded-md text-[10px] transition-all active:scale-95"
+              className="bg-slate-800 active:bg-slate-700 text-white font-bold min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md text-xs transition-all active:scale-95"
               title="Diminuir fonte"
             >
               A−
             </button>
-            <span className="text-[10px] font-mono font-bold text-slate-400 min-w-[22px] text-center">{perfFontSize}</span>
+            <span className="text-[12px] font-mono font-bold text-slate-400 min-w-[28px] text-center">{perfFontSize}</span>
             <button
               onClick={() => setPerfFontSize(f => Math.min(28, f + 1))}
-              className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-1.5 px-2 rounded-md text-[10px] transition-all active:scale-95"
+              className="bg-slate-800 active:bg-slate-700 text-white font-bold min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md text-xs transition-all active:scale-95"
               title="Aumentar fonte"
             >
               A+
@@ -275,7 +275,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
           <button
             onClick={() => setActivePerformanceSongIdx(prev => Math.min(songs.length - 1, prev + 1))}
             disabled={activePerformanceSongIdx === songs.length - 1}
-            className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white font-bold py-2 px-3 rounded-lg transition-all select-none text-sm"
+            className="flex items-center justify-center gap-1 bg-slate-800 active:bg-slate-700 disabled:opacity-30 text-white font-bold py-2 px-3 min-h-[44px] rounded-lg transition-all select-none text-sm active:scale-95"
           >
             <span className="hidden sm:inline">Próxima</span>
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -304,7 +304,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
                 setActivePerformanceSongIdx(0);
                 setIsPerformanceMode(true);
               }}
-              className="bg-violet-600 hover:bg-violet-700 text-white text-xs md:text-sm font-semibold py-2 px-4 rounded-xl flex items-center gap-1.5 transition-all shadow-sm hover:shadow active:scale-95"
+              className="bg-violet-600 active:bg-violet-700 text-white text-xs md:text-sm font-semibold py-2 px-4 min-h-[44px] rounded-xl flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -316,7 +316,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
           {onClose && (
             <button
               onClick={onClose}
-              className="border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-400 py-2 px-3 rounded-xl transition-all"
+              className="border border-slate-200 dark:border-slate-800 active:bg-slate-50 dark:active:bg-slate-850 text-slate-600 dark:text-slate-400 py-2 px-3 min-h-[44px] rounded-xl transition-all active:scale-95"
             >
               Fechar
             </button>
@@ -340,7 +340,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
             {songs.map((s, index) => (
               <div
                 key={s.id}
-                className="group flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850/80 rounded-xl hover:shadow-sm transition-all"
+                className="group flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850/80 rounded-xl transition-all active:scale-[0.98] active:bg-slate-100 dark:active:bg-slate-900 gap-3 sm:gap-0"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 w-5">
@@ -351,7 +351,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
                     className="min-w-0 cursor-pointer group/title"
                     title="Clique para ver a cifra"
                   >
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate group-hover/title:text-violet-600 dark:group-hover/title:text-violet-400 group-hover/title:underline decoration-violet-500/30">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate active:text-violet-600 dark:active:text-violet-400">
                       {s.song.title}
                     </h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{s.song.artist}</p>
@@ -364,33 +364,33 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
                   </span>
 
                   {/* Ordering arrows */}
-                  <div className="flex items-center gap-1 border-l border-slate-200 dark:border-slate-800/80 pl-3">
+                  <div className="flex items-center gap-1 sm:border-l border-slate-200 dark:border-slate-800/80 sm:pl-3">
                     <button
                       onClick={() => handleMove(index, "up")}
                       disabled={index === 0}
-                      className="p-1 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 disabled:opacity-20 rounded-md transition-colors"
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 active:bg-slate-200 dark:active:bg-slate-800 disabled:opacity-20 rounded-md transition-all active:scale-95"
                       title="Mover para cima"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                       </svg>
                     </button>
                     <button
                       onClick={() => handleMove(index, "down")}
                       disabled={index === songs.length - 1}
-                      className="p-1 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 disabled:opacity-20 rounded-md transition-colors"
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 active:bg-slate-200 dark:active:bg-slate-800 disabled:opacity-20 rounded-md transition-all active:scale-95"
                       title="Mover para baixo"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
                     <button
                       onClick={() => handleRemove(s.songId)}
-                      className="p-1 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-md transition-colors"
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center text-rose-500 active:bg-rose-100 dark:active:bg-rose-950/40 rounded-md transition-all active:scale-95"
                       title="Remover"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                     </button>

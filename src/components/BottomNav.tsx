@@ -20,8 +20,8 @@ export default function BottomNav({ onAddClick }: BottomNavProps) {
         {/* Músicas */}
         <Link 
           href="/" 
-          className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${
-            isHome ? "text-violet-600 dark:text-violet-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+          className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-all active:scale-95 ${
+            isHome ? "text-violet-600 dark:text-violet-400" : "text-slate-500 dark:text-slate-400 active:text-slate-900 dark:active:text-slate-200"
           }`}
         >
           <Music size={22} strokeWidth={isHome ? 2.5 : 2} />
@@ -33,7 +33,7 @@ export default function BottomNav({ onAddClick }: BottomNavProps) {
           onClick={onAddClick}
           className="flex flex-col items-center justify-center w-full h-full transition-transform active:scale-95"
         >
-          <div className="bg-violet-600 text-white rounded-full p-2.5 shadow-lg shadow-violet-500/30 transform -translate-y-2">
+          <div className="bg-violet-600 active:bg-violet-700 text-white rounded-full p-2.5 shadow-lg shadow-violet-500/30 transform -translate-y-2 transition-colors">
             <PlusCircle size={26} strokeWidth={2.5} />
           </div>
           <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 -mt-1">Adicionar</span>
@@ -42,8 +42,8 @@ export default function BottomNav({ onAddClick }: BottomNavProps) {
         {/* Repertórios */}
         <Link 
           href="/repertorios" 
-          className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${
-            isRepertorios ? "text-violet-600 dark:text-violet-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+          className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-all active:scale-95 ${
+            isRepertorios ? "text-violet-600 dark:text-violet-400" : "text-slate-500 dark:text-slate-400 active:text-slate-900 dark:active:text-slate-200"
           }`}
         >
           <BookOpen size={22} strokeWidth={isRepertorios ? 2.5 : 2} />

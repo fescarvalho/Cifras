@@ -186,10 +186,9 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
                 {isOnline ? "Online" : "Offline"}
               </span>
             </div>
-            {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850 transition-all active:scale-95 shadow-sm"
+              className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-850 transition-all active:scale-95 shadow-sm"
               title={darkMode ? "Ativar Modo Claro" : "Ativar Modo Escuro"}
             >
               {darkMode ? (
@@ -203,10 +202,9 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
               )}
             </button>
 
-            {/* Link to Repertórios (Hidden on mobile) */}
             <Link
               href="/repertorios"
-              className="hidden md:flex border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-350 font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm items-center gap-1.5 transition-all shadow-sm active:scale-95"
+              className="hidden md:flex min-h-[44px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 active:bg-slate-50 dark:active:bg-slate-850 text-slate-700 dark:text-slate-350 font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm items-center gap-1.5 transition-all shadow-sm active:scale-95"
             >
               <svg className="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -223,7 +221,7 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
                 }
                 setShowActionSheet(true);
               }}
-              className="hidden md:flex bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm items-center gap-1.5 transition-all shadow-md shadow-violet-500/10 active:scale-95"
+              className="hidden md:flex min-h-[44px] bg-violet-600 active:bg-violet-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm items-center gap-1.5 transition-all shadow-md shadow-violet-500/10 active:scale-95"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -270,12 +268,12 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
                 <div
                   key={song.id}
                   onClick={() => setSelectedSong(song)}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-violet-500 dark:hover:border-violet-500/80 rounded-2xl p-4 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 flex flex-col gap-3 group relative"
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 active:border-violet-500 dark:active:border-violet-500/80 active:bg-slate-50 dark:active:bg-slate-800/50 rounded-2xl p-4 cursor-pointer transition-all active:scale-[0.98] flex flex-col gap-3 relative"
                 >
                   {/* Delete button */}
                   <button
                     onClick={(e) => handleDeleteSong(song.id, song.title, e)}
-                    className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 opacity-0 group-hover:opacity-100 transition-all"
+                    className="absolute top-2 right-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-slate-400 dark:text-slate-500 active:text-rose-500 active:bg-rose-50 dark:active:bg-rose-950/50 transition-all active:scale-95"
                     title="Excluir música"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -285,7 +283,7 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
 
                   <div className="flex justify-between items-start gap-2 pr-6">
                     <div>
-                      <h3 className="font-bold text-slate-950 dark:text-slate-50 group-hover:text-violet-600 transition-colors line-clamp-1">
+                      <h3 className="font-bold text-slate-950 dark:text-slate-50 active:text-violet-600 transition-colors line-clamp-1">
                         {song.title}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{song.artist}</p>

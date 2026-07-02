@@ -100,7 +100,7 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-600 dark:text-slate-400"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 active:bg-slate-100 dark:active:bg-slate-800 rounded-full transition-all text-slate-600 dark:text-slate-400 active:scale-95"
               title="Voltar para Músicas"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -121,7 +121,7 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850 transition-all active:scale-95 shadow-sm"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-850 transition-all active:scale-95 shadow-sm"
               title={darkMode ? "Ativar Modo Claro" : "Ativar Modo Escuro"}
             >
               {darkMode ? (
@@ -138,7 +138,7 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
             {/* Quick Action Button (Hidden on mobile) */}
             <button
               onClick={() => setShowCreateSetlist(true)}
-              className="hidden md:flex bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm items-center gap-1.5 transition-all shadow-md shadow-violet-500/10 active:scale-95"
+              className="hidden md:flex min-h-[44px] bg-violet-600 active:bg-violet-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs md:text-sm items-center gap-1.5 transition-all shadow-md shadow-violet-500/10 active:scale-95"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -176,7 +176,7 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
                   {/* Collapsed Header click area */}
                   <div
                     onClick={() => handleToggle(s.id)}
-                    className="p-4 md:p-5 flex items-center justify-between cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-850/50 transition-colors select-none"
+                    className="p-4 md:p-5 flex items-center justify-between cursor-pointer active:bg-slate-50 dark:active:bg-slate-850/50 transition-all select-none active:scale-[0.99]"
                   >
                     <div className="min-w-0 pr-2">
                       <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 truncate flex items-center gap-2">
@@ -206,7 +206,7 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
                       {/* Delete button */}
                       <button
                         onClick={(e) => handleDelete(s.id, e)}
-                        className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition-colors"
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 text-rose-500 active:bg-rose-50 dark:active:bg-rose-950/20 rounded-xl transition-all active:scale-95"
                         title="Excluir repertório"
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

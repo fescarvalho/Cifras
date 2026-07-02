@@ -44,12 +44,12 @@ export default function ActionSheet({ isOpen, onClose, onNewManual, onNewPdf, mo
           
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-full"
+            className="absolute top-2 right-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 active:text-slate-600 dark:active:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-full active:scale-95 transition-all"
           >
             <X size={18} />
           </button>
 
-          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2 px-2">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2 px-2 mt-2">
             {mode === "song" ? "Adicionar Cifra" : "Novo"}
           </h3>
 
@@ -58,7 +58,7 @@ export default function ActionSheet({ isOpen, onClose, onNewManual, onNewPdf, mo
               onClose();
               onNewManual();
             }}
-            className="flex items-center gap-4 w-full p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors active:scale-95"
+            className="flex items-center gap-4 w-full p-4 text-left active:bg-slate-100 dark:active:bg-slate-800/50 rounded-xl transition-all active:scale-[0.98]"
           >
             <div className="bg-violet-100 dark:bg-violet-900/40 p-3 rounded-full text-violet-600 dark:text-violet-400">
               {mode === "song" ? <Music size={24} /> : <ListMusic size={24} />}
@@ -79,7 +79,7 @@ export default function ActionSheet({ isOpen, onClose, onNewManual, onNewPdf, mo
                 onClose();
                 onNewPdf();
               }}
-              className="flex items-center gap-4 w-full p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors active:scale-95"
+              className="flex items-center gap-4 w-full p-4 text-left active:bg-slate-100 dark:active:bg-slate-800/50 rounded-xl transition-all active:scale-[0.98]"
             >
               <div className="bg-emerald-100 dark:bg-emerald-900/40 p-3 rounded-full text-emerald-600 dark:text-emerald-400">
                 <FileText size={24} />

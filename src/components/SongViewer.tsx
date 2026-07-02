@@ -364,10 +364,10 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   };
 
   const saveBtnClass: Record<SaveStatus, string> = {
-    idle: "bg-emerald-600 hover:bg-emerald-700 text-white",
+    idle: "bg-emerald-600 active:bg-emerald-700 text-white",
     saving: "bg-emerald-600/70 text-white cursor-wait",
     saved: "bg-emerald-500 text-white",
-    error: "bg-rose-600 hover:bg-rose-700 text-white",
+    error: "bg-rose-600 active:bg-rose-700 text-white",
   };
 
   // ── Performance mode: just the chord sheet, no chrome ──
@@ -417,7 +417,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             {showBackButton && onClose && (
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 active:bg-slate-100 dark:active:bg-slate-800 rounded-full transition-all active:scale-95"
                 title="Voltar"
               >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -437,7 +437,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                 href={song.referenceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors ml-1"
+                className="flex items-center gap-1 min-h-[44px] px-3 py-1 text-xs font-semibold rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 active:bg-red-100 dark:active:bg-red-900/40 transition-all active:scale-95 ml-1"
                 title="Abrir referência no YouTube"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>
@@ -460,7 +460,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                   setEditReferenceUrl(song.referenceUrl || "");
                   setIsEditing(true); 
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all active:scale-95"
+                className="flex items-center gap-1.5 min-h-[44px] px-3 py-1.5 text-sm font-semibold border border-slate-300 dark:border-slate-600 active:bg-slate-100 dark:active:bg-slate-800 rounded-lg transition-all active:scale-95"
                 title="Editar música"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -473,14 +473,14 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
               <>
                 <button
                   onClick={handleCancelEdit}
-                  className="px-3 py-1.5 text-sm font-semibold border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
+                  className="min-h-[44px] px-3 py-1.5 text-sm font-semibold border border-slate-300 dark:border-slate-600 active:bg-slate-100 dark:active:bg-slate-800 rounded-lg transition-all active:scale-95"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleSaveEdit}
                   disabled={saveStatus === "saving"}
-                  className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all active:scale-95 disabled:cursor-wait shadow-sm ${saveBtnClass[saveStatus]}`}
+                  className={`min-h-[44px] px-4 py-1.5 text-sm font-semibold rounded-lg transition-all active:scale-95 disabled:cursor-wait shadow-sm ${saveBtnClass[saveStatus]}`}
                 >
                   {saveLabel[saveStatus]}
                 </button>
@@ -492,7 +492,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
               <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                 <button
                   onClick={() => setSemitones((s) => s - 1)}
-                  className="px-3 py-1.5 text-sm font-semibold hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-md transition-all active:scale-95"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center px-3 py-1.5 text-sm font-semibold active:bg-white dark:active:bg-slate-700 active:shadow-sm rounded-md transition-all active:scale-95"
                 >
                   − Tom
                 </button>
@@ -506,7 +506,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                 </div>
                 <button
                   onClick={() => setSemitones((s) => s + 1)}
-                  className="px-3 py-1.5 text-sm font-semibold hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-md transition-all active:scale-95"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center px-3 py-1.5 text-sm font-semibold active:bg-white dark:active:bg-slate-700 active:shadow-sm rounded-md transition-all active:scale-95"
                 >
                   + Tom
                 </button>
@@ -518,7 +518,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
               <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                 <button
                   onClick={() => setFontSize((f) => Math.max(12, f - 2))}
-                  className="p-1.5 rounded-md hover:bg-white dark:hover:bg-slate-700"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center p-1.5 rounded-md active:bg-white dark:active:bg-slate-700 transition-all active:scale-95"
                   title="Diminuir fonte"
                 >
                   <span className="text-xs font-bold font-sans">A−</span>
@@ -526,7 +526,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                 <span className="text-xs px-1 font-mono font-semibold">{fontSize}px</span>
                 <button
                   onClick={() => setFontSize((f) => Math.min(28, f + 2))}
-                  className="p-1.5 rounded-md hover:bg-white dark:hover:bg-slate-700"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center p-1.5 rounded-md active:bg-white dark:active:bg-slate-700 transition-all active:scale-95"
                   title="Aumentar fonte"
                 >
                   <span className="text-xs font-bold font-sans">A+</span>
@@ -550,7 +550,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                 <button
                   onClick={handleAddToSetlist}
                   disabled={!selectedSetlistId || isAdding}
-                  className="bg-violet-600 hover:bg-violet-700 text-white font-semibold py-1.5 px-4 rounded-lg text-xs md:text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md active:scale-95"
+                  className="min-h-[44px] bg-violet-600 active:bg-violet-700 text-white font-semibold py-1.5 px-4 rounded-lg text-xs md:text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed active:shadow-md active:scale-95"
                 >
                   {isAdding ? "Adicionando..." : "Adicionar"}
                 </button>
