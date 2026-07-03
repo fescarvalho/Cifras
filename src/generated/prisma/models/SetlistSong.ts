@@ -39,6 +39,7 @@ export type SetlistSongMinAggregateOutputType = {
   setlistId: string | null
   songId: string | null
   order: number | null
+  selectedKey: string | null
 }
 
 export type SetlistSongMaxAggregateOutputType = {
@@ -46,6 +47,7 @@ export type SetlistSongMaxAggregateOutputType = {
   setlistId: string | null
   songId: string | null
   order: number | null
+  selectedKey: string | null
 }
 
 export type SetlistSongCountAggregateOutputType = {
@@ -53,6 +55,7 @@ export type SetlistSongCountAggregateOutputType = {
   setlistId: number
   songId: number
   order: number
+  selectedKey: number
   _all: number
 }
 
@@ -70,6 +73,7 @@ export type SetlistSongMinAggregateInputType = {
   setlistId?: true
   songId?: true
   order?: true
+  selectedKey?: true
 }
 
 export type SetlistSongMaxAggregateInputType = {
@@ -77,6 +81,7 @@ export type SetlistSongMaxAggregateInputType = {
   setlistId?: true
   songId?: true
   order?: true
+  selectedKey?: true
 }
 
 export type SetlistSongCountAggregateInputType = {
@@ -84,6 +89,7 @@ export type SetlistSongCountAggregateInputType = {
   setlistId?: true
   songId?: true
   order?: true
+  selectedKey?: true
   _all?: true
 }
 
@@ -178,6 +184,7 @@ export type SetlistSongGroupByOutputType = {
   setlistId: string
   songId: string
   order: number
+  selectedKey: string | null
   _count: SetlistSongCountAggregateOutputType | null
   _avg: SetlistSongAvgAggregateOutputType | null
   _sum: SetlistSongSumAggregateOutputType | null
@@ -208,6 +215,7 @@ export type SetlistSongWhereInput = {
   setlistId?: Prisma.StringFilter<"SetlistSong"> | string
   songId?: Prisma.StringFilter<"SetlistSong"> | string
   order?: Prisma.IntFilter<"SetlistSong"> | number
+  selectedKey?: Prisma.StringNullableFilter<"SetlistSong"> | string | null
   setlist?: Prisma.XOR<Prisma.SetlistScalarRelationFilter, Prisma.SetlistWhereInput>
   song?: Prisma.XOR<Prisma.SongScalarRelationFilter, Prisma.SongWhereInput>
 }
@@ -217,6 +225,7 @@ export type SetlistSongOrderByWithRelationInput = {
   setlistId?: Prisma.SortOrder
   songId?: Prisma.SortOrder
   order?: Prisma.SortOrder
+  selectedKey?: Prisma.SortOrderInput | Prisma.SortOrder
   setlist?: Prisma.SetlistOrderByWithRelationInput
   song?: Prisma.SongOrderByWithRelationInput
 }
@@ -230,6 +239,7 @@ export type SetlistSongWhereUniqueInput = Prisma.AtLeast<{
   setlistId?: Prisma.StringFilter<"SetlistSong"> | string
   songId?: Prisma.StringFilter<"SetlistSong"> | string
   order?: Prisma.IntFilter<"SetlistSong"> | number
+  selectedKey?: Prisma.StringNullableFilter<"SetlistSong"> | string | null
   setlist?: Prisma.XOR<Prisma.SetlistScalarRelationFilter, Prisma.SetlistWhereInput>
   song?: Prisma.XOR<Prisma.SongScalarRelationFilter, Prisma.SongWhereInput>
 }, "id" | "setlistId_songId">
@@ -239,6 +249,7 @@ export type SetlistSongOrderByWithAggregationInput = {
   setlistId?: Prisma.SortOrder
   songId?: Prisma.SortOrder
   order?: Prisma.SortOrder
+  selectedKey?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.SetlistSongCountOrderByAggregateInput
   _avg?: Prisma.SetlistSongAvgOrderByAggregateInput
   _max?: Prisma.SetlistSongMaxOrderByAggregateInput
@@ -254,11 +265,13 @@ export type SetlistSongScalarWhereWithAggregatesInput = {
   setlistId?: Prisma.StringWithAggregatesFilter<"SetlistSong"> | string
   songId?: Prisma.StringWithAggregatesFilter<"SetlistSong"> | string
   order?: Prisma.IntWithAggregatesFilter<"SetlistSong"> | number
+  selectedKey?: Prisma.StringNullableWithAggregatesFilter<"SetlistSong"> | string | null
 }
 
 export type SetlistSongCreateInput = {
   id?: string
   order: number
+  selectedKey?: string | null
   setlist: Prisma.SetlistCreateNestedOneWithoutSongsInput
   song: Prisma.SongCreateNestedOneWithoutSetlistsInput
 }
@@ -268,11 +281,13 @@ export type SetlistSongUncheckedCreateInput = {
   setlistId: string
   songId: string
   order: number
+  selectedKey?: string | null
 }
 
 export type SetlistSongUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  selectedKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   setlist?: Prisma.SetlistUpdateOneRequiredWithoutSongsNestedInput
   song?: Prisma.SongUpdateOneRequiredWithoutSetlistsNestedInput
 }
@@ -282,6 +297,7 @@ export type SetlistSongUncheckedUpdateInput = {
   setlistId?: Prisma.StringFieldUpdateOperationsInput | string
   songId?: Prisma.StringFieldUpdateOperationsInput | string
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  selectedKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SetlistSongCreateManyInput = {
@@ -289,11 +305,13 @@ export type SetlistSongCreateManyInput = {
   setlistId: string
   songId: string
   order: number
+  selectedKey?: string | null
 }
 
 export type SetlistSongUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  selectedKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SetlistSongUncheckedUpdateManyInput = {
@@ -301,6 +319,7 @@ export type SetlistSongUncheckedUpdateManyInput = {
   setlistId?: Prisma.StringFieldUpdateOperationsInput | string
   songId?: Prisma.StringFieldUpdateOperationsInput | string
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  selectedKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SetlistSongListRelationFilter = {
@@ -323,6 +342,7 @@ export type SetlistSongCountOrderByAggregateInput = {
   setlistId?: Prisma.SortOrder
   songId?: Prisma.SortOrder
   order?: Prisma.SortOrder
+  selectedKey?: Prisma.SortOrder
 }
 
 export type SetlistSongAvgOrderByAggregateInput = {
@@ -334,6 +354,7 @@ export type SetlistSongMaxOrderByAggregateInput = {
   setlistId?: Prisma.SortOrder
   songId?: Prisma.SortOrder
   order?: Prisma.SortOrder
+  selectedKey?: Prisma.SortOrder
 }
 
 export type SetlistSongMinOrderByAggregateInput = {
@@ -341,6 +362,7 @@ export type SetlistSongMinOrderByAggregateInput = {
   setlistId?: Prisma.SortOrder
   songId?: Prisma.SortOrder
   order?: Prisma.SortOrder
+  selectedKey?: Prisma.SortOrder
 }
 
 export type SetlistSongSumOrderByAggregateInput = {
@@ -442,6 +464,7 @@ export type IntFieldUpdateOperationsInput = {
 export type SetlistSongCreateWithoutSongInput = {
   id?: string
   order: number
+  selectedKey?: string | null
   setlist: Prisma.SetlistCreateNestedOneWithoutSongsInput
 }
 
@@ -449,6 +472,7 @@ export type SetlistSongUncheckedCreateWithoutSongInput = {
   id?: string
   setlistId: string
   order: number
+  selectedKey?: string | null
 }
 
 export type SetlistSongCreateOrConnectWithoutSongInput = {
@@ -485,11 +509,13 @@ export type SetlistSongScalarWhereInput = {
   setlistId?: Prisma.StringFilter<"SetlistSong"> | string
   songId?: Prisma.StringFilter<"SetlistSong"> | string
   order?: Prisma.IntFilter<"SetlistSong"> | number
+  selectedKey?: Prisma.StringNullableFilter<"SetlistSong"> | string | null
 }
 
 export type SetlistSongCreateWithoutSetlistInput = {
   id?: string
   order: number
+  selectedKey?: string | null
   song: Prisma.SongCreateNestedOneWithoutSetlistsInput
 }
 
@@ -497,6 +523,7 @@ export type SetlistSongUncheckedCreateWithoutSetlistInput = {
   id?: string
   songId: string
   order: number
+  selectedKey?: string | null
 }
 
 export type SetlistSongCreateOrConnectWithoutSetlistInput = {
@@ -529,11 +556,13 @@ export type SetlistSongCreateManySongInput = {
   id?: string
   setlistId: string
   order: number
+  selectedKey?: string | null
 }
 
 export type SetlistSongUpdateWithoutSongInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  selectedKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   setlist?: Prisma.SetlistUpdateOneRequiredWithoutSongsNestedInput
 }
 
@@ -541,23 +570,27 @@ export type SetlistSongUncheckedUpdateWithoutSongInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   setlistId?: Prisma.StringFieldUpdateOperationsInput | string
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  selectedKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SetlistSongUncheckedUpdateManyWithoutSongInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   setlistId?: Prisma.StringFieldUpdateOperationsInput | string
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  selectedKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SetlistSongCreateManySetlistInput = {
   id?: string
   songId: string
   order: number
+  selectedKey?: string | null
 }
 
 export type SetlistSongUpdateWithoutSetlistInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  selectedKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   song?: Prisma.SongUpdateOneRequiredWithoutSetlistsNestedInput
 }
 
@@ -565,12 +598,14 @@ export type SetlistSongUncheckedUpdateWithoutSetlistInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   songId?: Prisma.StringFieldUpdateOperationsInput | string
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  selectedKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SetlistSongUncheckedUpdateManyWithoutSetlistInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   songId?: Prisma.StringFieldUpdateOperationsInput | string
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  selectedKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -580,6 +615,7 @@ export type SetlistSongSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   setlistId?: boolean
   songId?: boolean
   order?: boolean
+  selectedKey?: boolean
   setlist?: boolean | Prisma.SetlistDefaultArgs<ExtArgs>
   song?: boolean | Prisma.SongDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["setlistSong"]>
@@ -589,6 +625,7 @@ export type SetlistSongSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   setlistId?: boolean
   songId?: boolean
   order?: boolean
+  selectedKey?: boolean
   setlist?: boolean | Prisma.SetlistDefaultArgs<ExtArgs>
   song?: boolean | Prisma.SongDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["setlistSong"]>
@@ -598,6 +635,7 @@ export type SetlistSongSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   setlistId?: boolean
   songId?: boolean
   order?: boolean
+  selectedKey?: boolean
   setlist?: boolean | Prisma.SetlistDefaultArgs<ExtArgs>
   song?: boolean | Prisma.SongDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["setlistSong"]>
@@ -607,9 +645,10 @@ export type SetlistSongSelectScalar = {
   setlistId?: boolean
   songId?: boolean
   order?: boolean
+  selectedKey?: boolean
 }
 
-export type SetlistSongOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "setlistId" | "songId" | "order", ExtArgs["result"]["setlistSong"]>
+export type SetlistSongOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "setlistId" | "songId" | "order" | "selectedKey", ExtArgs["result"]["setlistSong"]>
 export type SetlistSongInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   setlist?: boolean | Prisma.SetlistDefaultArgs<ExtArgs>
   song?: boolean | Prisma.SongDefaultArgs<ExtArgs>
@@ -634,6 +673,7 @@ export type $SetlistSongPayload<ExtArgs extends runtime.Types.Extensions.Interna
     setlistId: string
     songId: string
     order: number
+    selectedKey: string | null
   }, ExtArgs["result"]["setlistSong"]>
   composites: {}
 }
@@ -1063,6 +1103,7 @@ export interface SetlistSongFieldRefs {
   readonly setlistId: Prisma.FieldRef<"SetlistSong", 'String'>
   readonly songId: Prisma.FieldRef<"SetlistSong", 'String'>
   readonly order: Prisma.FieldRef<"SetlistSong", 'Int'>
+  readonly selectedKey: Prisma.FieldRef<"SetlistSong", 'String'>
 }
     
 

@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { Setlist, Song } from "@/generated/prisma/client";
-import { getSetlistWithSongs, removeSongFromSetlist, updateSetlistOrder, createSong, addSongToSetlist } from "@/app/actions";
+import { getSetlistWithSongs, removeSongFromSetlist, updateSetlistOrder, createSong, addSongToSetlist, updateSetlistSongKey } from "@/app/actions";
 import { PART_LABELS, PART_COLORS } from "@/utils/labels";
+import { getTransposedKey, getPreferredScale } from "@/utils/chordTransposer";
 import SongViewer from "./SongViewer";
 import { db } from "@/lib/db-local";
 import { useOfflineSync } from "./OfflineSyncManager";
-import { Share2, Check } from "lucide-react";
+import { Share2, Check, CloudDownload, Loader2 } from "lucide-react";
 
 interface SetlistManagerProps {
   setlistId: string;
@@ -21,6 +22,7 @@ interface SetlistSongWithModel {
   setlistId: string;
   songId: string;
   order: number;
+  selectedKey?: string | null;
   song: any;
 }
 
@@ -31,14 +33,16 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
   const [error, setError] = useState("");
   const [isPerformanceMode, setIsPerformanceMode] = useState(false);
   const [activePerformanceSongIdx, setActivePerformanceSongIdx] = useState(0);
-  const [perfSemitones, setPerfSemitones] = useState(0);
   const [perfFontSize, setPerfFontSize] = useState(14);
-  const [selectedSong, setSelectedSong] = useState<any | null>(null);
+  const [selectedSetlistSong, setSelectedSetlistSong] = useState<SetlistSongWithModel | null>(null);
   const [shareFeedback, setShareFeedback] = useState(false);
   
   const [quickTitle, setQuickTitle] = useState("");
   const [quickPart, setQuickPart] = useState("ENTRADA");
   const [isQuickAdding, setIsQuickAdding] = useState(false);
+
+  const [isDownloadingSetlist, setIsDownloadingSetlist] = useState(false);
+  const [downloadedAt, setDownloadedAt] = useState<Date | null>(null);
 
   const { isOnline } = useOfflineSync();
 
@@ -73,6 +77,53 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
   useEffect(() => {
     loadSetlistDetails();
   }, [setlistId]);
+
+  const handleKeyChange = async (songId: string, newKey: string | null) => {
+    // 1. Optimistic UI update
+    setSongs(prev => prev.map(s => s.songId === songId ? { ...s, selectedKey: newKey } : s));
+
+    if (selectedSetlistSong && selectedSetlistSong.songId === songId) {
+      setSelectedSetlistSong(prev => prev ? { ...prev, selectedKey: newKey } : prev);
+    }
+
+    // 2. Local DB update
+    if (setlist) {
+      const localSetlist = await db.setlists.get(setlistId);
+      if (localSetlist) {
+        localSetlist.songs = localSetlist.songs.map((s: any) => 
+          s.songId === songId ? { ...s, selectedKey: newKey } : s
+        );
+        await db.setlists.put(localSetlist);
+      }
+    }
+
+    // 3. Online/Offline Sync
+    if (isOnline && !setlistId.startsWith('temp_')) {
+      try {
+        const res = await updateSetlistSongKey(setlistId, songId, newKey);
+        if (!res.success) {
+           console.error("Failed to update key online");
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    } else {
+      await db.syncQueue.add({
+        action: 'UPDATE_SETLIST_SONG_KEY',
+        payload: { setlistId, songId, selectedKey: newKey },
+        createdAt: new Date()
+      });
+    }
+  };
+
+  const handlePerfTranspose = (direction: number) => {
+    if (songs.length === 0) return;
+    const currentSetlistSong = songs[activePerformanceSongIdx];
+    const baseKey = currentSetlistSong.selectedKey || currentSetlistSong.song.originalKey;
+    const preferredScale = getPreferredScale(currentSetlistSong.song.content);
+    const newKey = getTransposedKey(baseKey, direction, preferredScale);
+    handleKeyChange(currentSetlistSong.songId, newKey);
+  };
 
   const handleMove = async (index: number, direction: "up" | "down") => {
     const targetIdx = direction === "up" ? index - 1 : index + 1;
@@ -195,6 +246,21 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
 
         if (songRes.success && songRes.song) {
           await addSongToSetlist(setlistId, songRes.song.id);
+          
+          // Update local Dexie DB to ensure instant UI update
+          const localSetlist = await db.setlists.get(setlistId);
+          if (localSetlist) {
+            const newOrder = localSetlist.songs.length > 0 ? Math.max(...localSetlist.songs.map((s: any) => s.order)) + 1 : 1;
+            localSetlist.songs.push({
+              id: `rel_${Date.now()}`,
+              setlistId: setlistId,
+              songId: songRes.song.id,
+              order: newOrder,
+              song: songRes.song as any
+            });
+            await db.setlists.put(localSetlist);
+          }
+
           setQuickTitle("");
           loadSetlistDetails();
           if (onRefreshSetlists) onRefreshSetlists();
@@ -249,6 +315,26 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
     }
   };
 
+  const handleDownloadSetlist = async () => {
+    if (!isOnline) return;
+    setIsDownloadingSetlist(true);
+    try {
+      const data = await getSetlistWithSongs(setlistId);
+      if (data) {
+        // save setlist locally
+        await db.setlists.put({ ...data, isSynced: true } as any);
+        // save songs locally
+        const songsToPut = data.songs.map((s: any) => ({ ...s.song, isSynced: true }));
+        await db.songs.bulkPut(songsToPut as any);
+        setDownloadedAt(new Date());
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDownloadingSetlist(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-slate-500">
@@ -273,7 +359,8 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
 
   if (isPerformanceMode && songs.length > 0) {
     // Show one song at a time with buttons to navigate
-    const currentSong = songs[activePerformanceSongIdx].song;
+    const currentSetlistSong = songs[activePerformanceSongIdx];
+    const currentSong = currentSetlistSong.song;
 
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-slate-950 text-slate-100">
@@ -312,7 +399,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
           <SongViewer
             song={currentSong}
             performanceMode
-            semitones={perfSemitones}
+            initialKey={currentSetlistSong.selectedKey || currentSong.originalKey}
             fontSize={perfFontSize}
           />
         </div>
@@ -335,19 +422,19 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
           <div className="flex items-center gap-1">
             {/* Transpose */}
             <button
-              onClick={() => setPerfSemitones(s => s - 1)}
+              onClick={() => handlePerfTranspose(-1)}
               className="bg-slate-800 active:bg-slate-700 text-white font-bold min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md text-sm transition-all active:scale-95"
-              title="Transpor -1"
+              title="Transpor -1 Tom"
             >
               −
             </button>
             <span className="text-[12px] font-mono font-bold text-orange-400 min-w-[32px] text-center">
-              {perfSemitones !== 0 ? (perfSemitones > 0 ? `+${perfSemitones}` : perfSemitones) : "Tom"}
+              {currentSetlistSong.selectedKey || currentSetlistSong.song.originalKey || "Tom"}
             </span>
             <button
-              onClick={() => setPerfSemitones(s => s + 1)}
+              onClick={() => handlePerfTranspose(1)}
               className="bg-slate-800 active:bg-slate-700 text-white font-bold min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md text-sm transition-all active:scale-95"
-              title="Transpor +1"
+              title="Transpor +1 Tom"
             >
               +
             </button>
@@ -410,6 +497,34 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
             </span>
           </button>
           
+          {/* Download Setlist */}
+          {isDownloadingSetlist ? (
+             <div className="flex items-center text-xs md:text-sm px-3 py-1.5 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 min-h-[44px]">
+               <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+               <span className="hidden sm:inline font-medium">Salvando...</span>
+             </div>
+          ) : downloadedAt ? (
+             <button
+                disabled={!isOnline}
+                onClick={handleDownloadSetlist}
+                className="flex items-center text-xs md:text-sm px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 min-h-[44px] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Missa salva para uso offline!"
+             >
+                <Check className="w-4 h-4 mr-1.5" />
+                <span className="hidden sm:inline font-medium">Salvo Offline</span>
+             </button>
+          ) : (
+             <button
+                disabled={!isOnline}
+                onClick={handleDownloadSetlist}
+                className="flex items-center text-xs md:text-sm px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 min-h-[44px] active:scale-95 transition-all shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={isOnline ? "Salvar Missa Offline" : "Conecte-se para salvar"}
+             >
+                <CloudDownload className="w-4 h-4 mr-1.5 text-violet-500" />
+                <span className="hidden sm:inline font-semibold">Salvar Missa</span>
+             </button>
+          )}
+
           {songs.length > 0 && (
             <button
               onClick={() => {
@@ -461,7 +576,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
                     {index + 1}
                   </span>
                   <div
-                    onClick={() => setSelectedSong(s.song)}
+                    onClick={() => setSelectedSetlistSong(s)}
                     className="min-w-0 cursor-pointer group/title"
                     title="Clique para ver a cifra"
                   >
@@ -549,12 +664,14 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
       )}
 
       {/* Song Viewer Fullscreen Overlay Modal */}
-      {selectedSong && (
+      {selectedSetlistSong && (
         <div className="fixed inset-0 z-50 bg-slate-50 dark:bg-slate-950">
           <SongViewer
-            song={selectedSong}
+            song={selectedSetlistSong.song}
+            initialKey={selectedSetlistSong.selectedKey || selectedSetlistSong.song.originalKey}
+            onChangeKey={(newKey) => handleKeyChange(selectedSetlistSong.songId, newKey)}
             onClose={() => {
-              setSelectedSong(null);
+              setSelectedSetlistSong(null);
               loadSetlistDetails();
             }}
             showBackButton={true}

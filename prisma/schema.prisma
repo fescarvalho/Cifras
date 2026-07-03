@@ -56,12 +56,13 @@ model Setlist {
 }
 
 model SetlistSong {
-  id        String   @id @default(cuid())
-  setlistId String
-  songId    String
-  order     Int
-  setlist   Setlist  @relation(fields: [setlistId], references: [id], onDelete: Cascade)
-  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  setlistId   String
+  songId      String
+  order       Int
+  selectedKey String?  // Optional saved transposition key for this specific mass
+  setlist     Setlist  @relation(fields: [setlistId], references: [id], onDelete: Cascade)
+  song        Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
 
   @@unique([setlistId, songId])
 }

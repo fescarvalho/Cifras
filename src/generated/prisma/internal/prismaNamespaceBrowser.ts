@@ -103,7 +103,8 @@ export const SetlistSongScalarFieldEnum = {
   id: 'id',
   setlistId: 'setlistId',
   songId: 'songId',
-  order: 'order'
+  order: 'order',
+  selectedKey: 'selectedKey'
 } as const
 
 export type SetlistSongScalarFieldEnum = (typeof SetlistSongScalarFieldEnum)[keyof typeof SetlistSongScalarFieldEnum]

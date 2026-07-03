@@ -2,18 +2,22 @@
 
 import { useEffect, useState, createContext, useContext, ReactNode, useRef } from "react";
 import { db, LocalSong, LocalSetlist, SyncOperation } from "@/lib/db-local";
-import { createSetlist, addSongToSetlist, removeSongFromSetlist, updateSetlistOrder, deleteSetlist, createSong } from "@/app/actions";
+import { createSetlist, addSongToSetlist, removeSongFromSetlist, updateSetlistOrder, deleteSetlist, createSong, updateSetlistSongKey } from "@/app/actions";
 
 interface OfflineSyncContextType {
   isOnline: boolean;
   isSyncing: boolean;
+  isDownloading: boolean;
   lastSyncTime: Date | null;
+  downloadOfflineData: () => Promise<void>;
 }
 
 const OfflineSyncContext = createContext<OfflineSyncContextType>({
   isOnline: true,
   isSyncing: false,
+  isDownloading: false,
   lastSyncTime: null,
+  downloadOfflineData: async () => {},
 });
 
 export const useOfflineSync = () => useContext(OfflineSyncContext);
@@ -21,6 +25,7 @@ export const useOfflineSync = () => useContext(OfflineSyncContext);
 export default function OfflineSyncManager({ children }: { children: ReactNode }) {
   const [isOnline, setIsOnline] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   const hasSynced = useRef(false);
@@ -29,12 +34,18 @@ export default function OfflineSyncManager({ children }: { children: ReactNode }
     if (hasSynced.current) return; // Se já rodou, trava o loop na hora
     hasSynced.current = true;
 
+    // Load last sync time
+    const savedTime = localStorage.getItem("lastSyncedAt");
+    if (savedTime) {
+      setLastSyncTime(new Date(savedTime));
+    }
+
     // Initial check
     setIsOnline(navigator.onLine);
 
     const handleOnline = () => {
       setIsOnline(true);
-      syncData();
+      processSyncQueue();
     };
     
     const handleOffline = () => {
@@ -44,9 +55,9 @@ export default function OfflineSyncManager({ children }: { children: ReactNode }
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Initial sync
+    // Initial push (only pushes queue, does not download)
     if (navigator.onLine) {
-      syncData();
+      processSyncQueue();
     }
 
     return () => {
@@ -82,6 +93,8 @@ export default function OfflineSyncManager({ children }: { children: ReactNode }
           await removeSongFromSetlist(op.payload.setlistId, op.payload.songId);
         } else if (op.action === 'UPDATE_SETLIST_ORDER') {
           await updateSetlistOrder(op.payload.setlistId, op.payload.songIdsInOrder);
+        } else if (op.action === 'UPDATE_SETLIST_SONG_KEY') {
+          await updateSetlistSongKey(op.payload.setlistId, op.payload.songId, op.payload.selectedKey);
         } else if (op.action === 'DELETE_SETLIST') {
           await deleteSetlist(op.payload.setlistId);
         }
@@ -98,13 +111,11 @@ export default function OfflineSyncManager({ children }: { children: ReactNode }
     }
   };
 
-  const syncData = async () => {
+  const downloadOfflineData = async () => {
+    if (!navigator.onLine) return;
     try {
-      setIsSyncing(true);
+      setIsDownloading(true);
       
-      // First, process any pending offline operations
-      await processSyncQueue();
-
       // Fetch Songs
       const resSongs = await fetch("/api/songs");
       if (!resSongs.ok) throw new Error("Failed to fetch songs");
@@ -127,16 +138,18 @@ export default function OfflineSyncManager({ children }: { children: ReactNode }
         await db.setlists.bulkPut(setlistsWithSyncFlag);
       }
       
-      setLastSyncTime(new Date());
+      const now = new Date();
+      setLastSyncTime(now);
+      localStorage.setItem("lastSyncedAt", now.toISOString());
     } catch (err) {
-      console.error("Error syncing data:", err);
+      console.error("Error downloading data:", err);
     } finally {
-      setIsSyncing(false);
+      setIsDownloading(false);
     }
   };
 
   return (
-    <OfflineSyncContext.Provider value={{ isOnline, isSyncing, lastSyncTime }}>
+    <OfflineSyncContext.Provider value={{ isOnline, isSyncing, isDownloading, lastSyncTime, downloadOfflineData }}>
       {children}
     </OfflineSyncContext.Provider>
   );

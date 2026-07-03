@@ -16,7 +16,7 @@ import { getSongs, getSetlists, deleteSetlist, deleteSong } from "@/app/actions"
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db-local";
 import { useOfflineSync } from "./OfflineSyncManager";
-import { Cloud, CloudOff } from "lucide-react";
+import { CloudDownload, Loader2, CheckCircle2 } from "lucide-react";
 
 interface MainAppProps {
   initialSongs: Song[];
@@ -34,7 +34,7 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
   const songs = dexieSongs || (initialSongs as any[]);
   const setlists = dexieSetlists || (initialSetlists as any[]);
   
-  const { isOnline } = useOfflineSync();
+  const { isOnline, isDownloading, lastSyncTime, downloadOfflineData } = useOfflineSync();
 
   // Filter States
   const [search, setSearch] = useState("");
@@ -175,17 +175,33 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Sync Status Indicator */}
-            <div className="flex items-center text-xs px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800" title={isOnline ? "Online - Dados atualizados" : "Offline - Usando cache local"}>
-              {isOnline ? (
-                <Cloud className="w-4 h-4 text-emerald-500 mr-1.5" />
-              ) : (
-                <CloudOff className="w-4 h-4 text-amber-500 mr-1.5" />
-              )}
-              <span className="hidden sm:inline font-medium text-slate-600 dark:text-slate-300">
-                {isOnline ? "Online" : "Offline"}
-              </span>
-            </div>
+            {/* Sync Status Indicator / Download Button */}
+            {isDownloading ? (
+              <div className="flex items-center text-xs px-3 py-1.5 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 min-h-[44px]">
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <span className="hidden sm:inline font-medium">Baixando...</span>
+              </div>
+            ) : lastSyncTime ? (
+              <button 
+                onClick={downloadOfflineData}
+                disabled={!isOnline}
+                className="flex items-center text-xs px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 min-h-[44px] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                title={`Offline Atualizado: ${lastSyncTime.toLocaleDateString()} às ${lastSyncTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}\nClique para atualizar novamente.`}
+              >
+                <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                <span className="hidden sm:inline font-medium">Atualizado</span>
+              </button>
+            ) : (
+              <button 
+                onClick={downloadOfflineData}
+                disabled={!isOnline}
+                className="flex items-center text-xs px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 min-h-[44px] active:scale-95 transition-all shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={isOnline ? "Baixar Acervo para Offline" : "Conecte-se para baixar"}
+              >
+                <CloudDownload className="w-4 h-4 mr-1.5 text-violet-500" />
+                <span className="hidden sm:inline font-semibold">Baixar Offline</span>
+              </button>
+            )}
             <button
               onClick={toggleTheme}
               className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-850 transition-all active:scale-95 shadow-sm"
@@ -260,7 +276,11 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
           {filteredSongs.length === 0 ? (
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center shadow-sm">
               <p className="text-slate-500 dark:text-slate-400 font-semibold mb-2">Nenhuma música encontrada</p>
-              <p className="text-xs text-slate-400">Tente ajustar seus filtros ou clique em "Nova Cifra" para cadastrar.</p>
+              {!lastSyncTime && !isOnline ? (
+                <p className="text-xs text-slate-400">Você ainda não baixou nenhuma cifra para o modo offline. Conecte-se à internet e clique em "Baixar Offline".</p>
+              ) : (
+                <p className="text-xs text-slate-400">Tente ajustar seus filtros ou clique em "Nova Cifra" para cadastrar.</p>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

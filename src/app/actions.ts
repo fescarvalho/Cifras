@@ -276,6 +276,29 @@ export async function updateSetlistOrder(setlistId: string, songIdsInOrder: stri
 }
 
 /**
+ * Updates the selected key for a song in a specific setlist.
+ */
+export async function updateSetlistSongKey(setlistId: string, songId: string, selectedKey: string | null) {
+  try {
+    await prisma.setlistSong.update({
+      where: {
+        setlistId_songId: { setlistId, songId },
+      },
+      data: {
+        selectedKey,
+      },
+    });
+
+    revalidatePath(`/setlist/${setlistId}`);
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to update setlist song key:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Deletes a setlist.
  */
 export async function deleteSetlist(id: string) {

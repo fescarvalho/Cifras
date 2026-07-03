@@ -237,3 +237,38 @@ export function transposeSongContent(content: string, semitones: number): string
   
   return transposedLines.join('\n');
 }
+
+/**
+ * Calculates the exact semitone difference between an original key and a target key.
+ */
+export function getSemitoneDifference(originalKey: string, targetKey: string): number {
+  const matchOrig = originalKey.match(/^([A-G](?:#|b)?)/);
+  const matchTarget = targetKey.match(/^([A-G](?:#|b)?)/);
+  if (!matchOrig || !matchTarget) return 0;
+  
+  const origSt = NOTE_TO_SEMITONE[matchOrig[1]];
+  const targetSt = NOTE_TO_SEMITONE[matchTarget[1]];
+  if (origSt === undefined || targetSt === undefined) return 0;
+  
+  let diff = targetSt - origSt;
+  if (diff < -6) diff += 12;
+  if (diff > 6) diff -= 12;
+  return diff;
+}
+
+/**
+ * Gets the transposed key string given a base key and semitones to shift.
+ */
+export function getTransposedKey(baseKey: string, semitones: number, preferredScale: string[]): string {
+  if (semitones === 0) return baseKey;
+  const match = baseKey.match(/^([A-G](?:#|b)?)(.*)$/);
+  if (!match) return baseKey;
+  
+  const [, root, extension] = match;
+  const current = NOTE_TO_SEMITONE[root];
+  if (current === undefined) return baseKey;
+  
+  let newSt = (current + semitones) % 12;
+  if (newSt < 0) newSt += 12;
+  return preferredScale[newSt] + extension;
+}

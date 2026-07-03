@@ -98,64 +98,92 @@ export async function POST(request: Request) {
     const renderPage = async (pageData: any) => {
       const render_options = {
         normalizeWhitespace: false,
-        disableCombineTextItems: false
+        disableCombineTextItems: true
       };
       
       const textContent = await pageData.getTextContent(render_options);
-      let lastY = -1;
-      let lastX = 0;
+      const lines: { y: number, items: any[] }[] = [];
+      
+      for (const item of textContent.items) {
+        // Skip empty string items
+        if (!item.str || item.str === '') continue;
+        
+        const y = item.transform[5];
+        // Tolerance of 3 points for items on the same line
+        let line = lines.find(l => Math.abs(l.y - y) < 3);
+        if (!line) {
+          line = { y: y, items: [] };
+          lines.push(line);
+        }
+        line.items.push(item);
+      }
+      
+      // Sort lines top to bottom (PDF Y is usually 0 at bottom)
+      lines.sort((a, b) => b.y - a.y);
+      
       let text = '';
       
-      for (let item of textContent.items) {
-        const currentY = item.transform[5];
-        const currentX = item.transform[4];
-        const fontSize = item.transform[0] || 10;
-        const charWidth = fontSize * 0.4 || 4; // Estimativa de largura do caractere
-
-        if (lastY !== -1 && Math.abs(currentY - lastY) > (fontSize * 0.2)) {
-          text += '\n';
-          if (currentX > 20) {
-            const leadingSpaces = Math.max(0, Math.round((currentX - 20) / charWidth));
-            text += ' '.repeat(leadingSpaces);
-          }
-          text += item.str;
-        } else {
-          if (lastY !== -1) {
-            const gap = currentX - lastX;
-            if (gap > (charWidth * 0.5)) {
-              const spacesCount = Math.max(1, Math.round(gap / charWidth));
-              text += ' '.repeat(spacesCount);
+      for (const line of lines) {
+        // Sort items left to right
+        line.items.sort((a, b) => a.transform[4] - b.transform[4]);
+        
+        let lineText = '';
+        let currentX = 0;
+        
+        for (const item of line.items) {
+          const itemX = item.transform[4];
+          const fontSize = item.transform[0] || 10;
+          // Estimated width of a space character for this font size
+          const spaceWidth = Math.max(fontSize * 0.35, 3.5); 
+          
+          if (currentX > 0) {
+            const gap = itemX - currentX;
+            if (gap > spaceWidth) {
+              const numSpaces = Math.max(1, Math.round(gap / spaceWidth));
+              lineText += ' '.repeat(numSpaces);
             }
           } else {
-            if (currentX > 20) {
-              const leadingSpaces = Math.max(0, Math.round((currentX - 20) / charWidth));
-              text += ' '.repeat(leadingSpaces);
+            // Initial line indentation (assuming page margin is around 20-30 points)
+            if (itemX > 30) {
+              const numSpaces = Math.max(0, Math.round((itemX - 30) / spaceWidth));
+              lineText += ' '.repeat(numSpaces);
             }
           }
-          text += item.str;
+          let str = item.str;
+          const trueTextWidth = str.trimEnd().length * (fontSize * 0.55);
+          
+          if (item.width && item.width > trueTextWidth + spaceWidth * 2 && str.includes(' ')) {
+            const extraWidth = item.width - trueTextWidth;
+            const extraSpaces = Math.max(0, Math.round(extraWidth / spaceWidth));
+            const spaceCount = str.match(/ /g)?.length || 1;
+            const spacesPerGap = Math.round(extraSpaces / spaceCount);
+            if (spacesPerGap > 0) {
+              str = str.replace(/ /g, ' '.repeat(1 + spacesPerGap));
+            }
+          }
+          
+          lineText += str;
+          
+          currentX = itemX + (str.trimEnd().length * (fontSize * 0.55));
         }
-        lastY = currentY;
-        lastX = currentX + (item.width || 0);
+        text += lineText.trimEnd() + '\n';
       }
+      
       return text;
     };
 
-    // Use pageJoiner to insert markers between pages, pass pagerender option
-    const textResult = await parser.getText({
-      pageJoiner: '\n--- PAGE {PAGE_NUM} ---\n',
-      pagerender: renderPage
-    });
-
-    let rawText: string;
-    if (typeof textResult === 'string') {
-      rawText = textResult;
-    } else if (textResult && Array.isArray(textResult.pages)) {
-      rawText = textResult.pages
-        .map((p: { text: string; num: number }) => `--- PAGE ${p.num} ---\n${p.text}`)
-        .join('\n');
-    } else {
-      rawText = String(textResult ?? '');
+    const doc = (parser as any).doc;
+    if (!doc) throw new Error("Não foi possível ler o documento PDF");
+    
+    let rawText = '';
+    const numPages = doc.numPages;
+    for (let i = 1; i <= numPages; i++) {
+      const pageData = await doc.getPage(i);
+      rawText += `\n--- PAGE ${i} ---\n`;
+      rawText += await renderPage(pageData);
     }
+
+    // We already built rawText in the loop above.
 
     // ── 4. Split by page markers ───────────────────────────────────────────
     const rawSongs = rawText

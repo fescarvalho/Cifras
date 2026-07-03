@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useRef, useCallback } from "react";
 import { Song, Setlist } from "@/generated/prisma/client";
-import { transposeLine, getPreferredScale, isChordLine, sanitizePdfText } from "@/utils/chordTransposer";
+import { transposeLine, getPreferredScale, isChordLine, sanitizePdfText, getSemitoneDifference, getTransposedKey } from "@/utils/chordTransposer";
 import { PART_LABELS, PART_COLORS, SEASON_LABELS } from "@/utils/labels";
 import { addSongToSetlist, updateSongContent } from "@/app/actions";
 import { useOfflineSync } from "./OfflineSyncManager";
@@ -16,6 +16,8 @@ interface SongViewerProps {
   performanceMode?: boolean;
   semitones?: number;
   fontSize?: number;
+  initialKey?: string | null;
+  onChangeKey?: (newKey: string) => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -174,8 +176,13 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 // ─────────────────────────────────────────────────────────────────────────────
 // Main SongViewer
 // ─────────────────────────────────────────────────────────────────────────────
-export default function SongViewer({ song, setlists = [], onClose, showBackButton = false, performanceMode = false, semitones: externalSemitones, fontSize: externalFontSize }: SongViewerProps) {
-  const [internalSemitones, setInternalSemitones] = useState(0);
+export default function SongViewer({ song, setlists = [], onClose, showBackButton = false, performanceMode = false, semitones: externalSemitones, fontSize: externalFontSize, initialKey, onChangeKey }: SongViewerProps) {
+  const [internalSemitones, setInternalSemitones] = useState(() => {
+    if (initialKey && initialKey !== song.originalKey) {
+      return getSemitoneDifference(song.originalKey, initialKey);
+    }
+    return 0;
+  });
   const [internalFontSize, setInternalFontSize] = useState(16);
 
   const semitones = externalSemitones ?? internalSemitones;
@@ -199,20 +206,15 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   const preferredScale = useMemo(() => getPreferredScale(song.content), [song.content]);
 
   const currentKey = useMemo(() => {
-    if (semitones === 0) return song.originalKey;
-    const match = song.originalKey.match(/^([A-G](?:#|b)?)(.*)$/);
-    if (!match) return song.originalKey;
-    const [, root, extension] = match;
-    const NOTE_TO_SEMITONE: Record<string, number> = {
-      C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5,
-      "F#": 6, Gb: 6, G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11,
-    };
-    const current = NOTE_TO_SEMITONE[root];
-    if (current === undefined) return song.originalKey;
-    let newSt = (current + semitones) % 12;
-    if (newSt < 0) newSt += 12;
-    return preferredScale[newSt] + extension;
+    return getTransposedKey(song.originalKey, semitones, preferredScale);
   }, [song.originalKey, semitones, preferredScale]);
+
+  // Hook to notify parent component when currentKey changes via UI interactions
+  React.useEffect(() => {
+    if (onChangeKey && currentKey) {
+      onChangeKey(currentKey);
+    }
+  }, [currentKey, onChangeKey]);
 
   const renderedLines = useMemo(() => {
     const sanitized = sanitizePdfText(song.content ?? "");
@@ -257,6 +259,20 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
       if (isOnline && !selectedSetlistId.startsWith('temp_')) {
         const res = await addSongToSetlist(selectedSetlistId, song.id);
         if (res.success) {
+          // Update local DB so it shows up instantly without reloading
+          const localSetlist = await db.setlists.get(selectedSetlistId);
+          if (localSetlist) {
+            const newOrder = localSetlist.songs.length > 0 ? Math.max(...localSetlist.songs.map(s => s.order)) + 1 : 1;
+            localSetlist.songs.push({
+              id: `rel_${Date.now()}`,
+              setlistId: selectedSetlistId,
+              songId: song.id,
+              order: newOrder,
+              song: song as any
+            });
+            await db.setlists.put(localSetlist);
+          }
+
           setMessage({ text: "Adicionada ao repertório!", type: "success" });
           setTimeout(() => setMessage({ text: "", type: "" }), 3000);
         } else {
@@ -389,13 +405,13 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             }
             if (line.type === "chords") {
               return (
-                <div key={line.key} className="font-mono font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre leading-none pb-0.5 pt-1.5" style={{ letterSpacing: "normal" }}>
+                <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-0.5 pt-1.5">
                   {line.content}
                 </div>
               );
             }
             return (
-              <div key={line.key} className="font-sans text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-snug pb-0.5">
+              <div key={line.key} className="font-mono tracking-normal text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-snug pb-0.5">
                 {line.content}
               </div>
             );
@@ -668,20 +684,20 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                 const introMatch = line.content.match(/^(\s*(?:intro(?:du[cç][aã]o)?)[:.\-]*\s*)(.*)$/i);
                 if (introMatch) {
                   return (
-                    <div key={line.key} className="font-mono whitespace-pre leading-none pb-1 pt-2" style={{ letterSpacing: "normal" }}>
+                    <div key={line.key} className="font-mono tracking-normal whitespace-pre-wrap leading-none pb-1 pt-2">
                       <span className="text-slate-500 dark:text-slate-400 font-normal">{introMatch[1]}</span>
                       <span className="font-bold text-orange-600 dark:text-orange-400">{introMatch[2]}</span>
                     </div>
                   );
                 }
                 return (
-                  <div key={line.key} className="font-mono font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre leading-none pb-1 pt-2" style={{ letterSpacing: "normal" }}>
+                  <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-1 pt-2">
                     {line.content}
                   </div>
                 );
               }
               return (
-                <div key={line.key} className="font-sans text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed pb-1">
+                <div key={line.key} className="font-mono tracking-normal text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed pb-1">
                   {line.content}
                 </div>
               );
