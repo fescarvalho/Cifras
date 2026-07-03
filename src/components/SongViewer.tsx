@@ -209,12 +209,20 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
     return getTransposedKey(song.originalKey, semitones, preferredScale);
   }, [song.originalKey, semitones, preferredScale]);
 
+  const onChangeKeyRef = useRef(onChangeKey);
+  const lastFiredKey = useRef<string | null>(initialKey || null);
+
+  React.useEffect(() => {
+    onChangeKeyRef.current = onChangeKey;
+  }, [onChangeKey]);
+
   // Hook to notify parent component when currentKey changes via UI interactions
   React.useEffect(() => {
-    if (onChangeKey && currentKey) {
-      onChangeKey(currentKey);
+    if (onChangeKeyRef.current && currentKey && currentKey !== lastFiredKey.current) {
+      lastFiredKey.current = currentKey;
+      onChangeKeyRef.current(currentKey);
     }
-  }, [currentKey, onChangeKey]);
+  }, [currentKey]);
 
   const renderedLines = useMemo(() => {
     const sanitized = sanitizePdfText(song.content ?? "");
