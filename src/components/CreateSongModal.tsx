@@ -5,6 +5,7 @@ import { LiturgicalPart, LiturgicalSeason } from "@/generated/prisma/client";
 import { PART_LABELS, SEASON_LABELS } from "@/utils/labels";
 import { createSong } from "@/app/actions";
 import { useOfflineSync } from "./OfflineSyncManager";
+import { db } from "@/lib/db-local";
 
 interface CreateSongModalProps {
   onClose: () => void;
