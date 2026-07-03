@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, createContext, useContext, ReactNode } from "react";
+import { useEffect, useState, createContext, useContext, ReactNode, useRef } from "react";
 import { db, LocalSong, LocalSetlist, SyncOperation } from "@/lib/db-local";
-import { createSetlist, addSongToSetlist, removeSongFromSetlist, updateSetlistOrder, deleteSetlist } from "@/app/actions";
+import { createSetlist, addSongToSetlist, removeSongFromSetlist, updateSetlistOrder, deleteSetlist, createSong } from "@/app/actions";
 
 interface OfflineSyncContextType {
   isOnline: boolean;
@@ -23,7 +23,12 @@ export default function OfflineSyncManager({ children }: { children: ReactNode }
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
+  const hasSynced = useRef(false);
+
   useEffect(() => {
+    if (hasSynced.current) return; // Se já rodou, trava o loop na hora
+    hasSynced.current = true;
+
     // Initial check
     setIsOnline(navigator.onLine);
 
@@ -48,7 +53,7 @@ export default function OfflineSyncManager({ children }: { children: ReactNode }
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, []);
+  }, []); // <-- OBRIGATORIAMENTE array de dependências vazio []
 
   const processSyncQueue = async () => {
     const queue = await db.syncQueue.orderBy('createdAt').toArray();
@@ -57,15 +62,13 @@ export default function OfflineSyncManager({ children }: { children: ReactNode }
     for (const op of queue) {
       try {
         if (op.action === 'CREATE_SONG') {
-          import("@/app/actions").then(async ({ createSong }) => {
-            await createSong({
-              title: op.payload.title,
-              artist: op.payload.artist,
-              originalKey: op.payload.originalKey,
-              content: op.payload.content,
-              part: op.payload.part,
-              season: op.payload.season
-            });
+          await createSong({
+            title: op.payload.title,
+            artist: op.payload.artist,
+            originalKey: op.payload.originalKey,
+            content: op.payload.content,
+            part: op.payload.part,
+            season: op.payload.season
           });
         } else if (op.action === 'CREATE_SETLIST') {
           // Send to server
