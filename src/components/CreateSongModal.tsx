@@ -55,6 +55,7 @@ export default function CreateSongModal({ onClose, onSuccess }: CreateSongModalP
           content: res.song.content,
           part: res.song.part,
           season: res.song.season,
+          referenceUrl: res.song.referenceUrl || null,
           createdAt: new Date(res.song.createdAt),
           updatedAt: new Date(res.song.updatedAt),
           isSynced: true
