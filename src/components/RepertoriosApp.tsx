@@ -192,7 +192,7 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
                           </span>
                         )}
                       </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1" suppressHydrationWarning>
                         {new Date(s.date).toLocaleDateString("pt-BR", { dateStyle: "long" })}
                       </p>
                     </div>

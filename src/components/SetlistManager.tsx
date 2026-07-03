@@ -481,7 +481,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
       <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800/80">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-slate-950 dark:text-slate-50">{setlist.title}</h2>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-1" suppressHydrationWarning>
             Data: {new Date(setlist.date).toLocaleDateString("pt-BR", { dateStyle: "long" })}
           </p>
         </div>
