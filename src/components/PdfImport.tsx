@@ -42,7 +42,7 @@ const LITURGICAL_PARTS = [
 const SHARED_STYLE: React.CSSProperties = {
   fontFamily: "'Courier New', Courier, monospace",
   fontSize: "13px",
-  lineHeight: "1.6",
+  lineHeight: "1.2",
   padding: "12px",
   margin: 0,
   whiteSpace: "pre-wrap",
@@ -63,7 +63,7 @@ function buildHighlightedHTML(text: string): React.ReactNode {
     // Empty line — render a non-breaking space so the line keeps its height
     if (!trimmed) {
       return (
-        <span key={i} style={{ display: "block", minHeight: "1.6em" }}>
+        <span key={i} style={{ display: "block", minHeight: "1.2em" }}>
           {isLast ? null : "\u00A0"}
         </span>
       );
@@ -142,7 +142,7 @@ function ChordEditor({ value, onChange, minRows = 16 }: ChordEditorProps) {
   }, []);
 
   // Minimum height based on minRows
-  const minHeight = `calc(${minRows} * 1.6em + 24px)`; // rows × lineHeight + 2×padding
+  const minHeight = `calc(${minRows} * 1.2em + 24px)`; // rows × lineHeight + 2×padding
 
   return (
     <div

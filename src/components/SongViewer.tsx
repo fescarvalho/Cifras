@@ -28,7 +28,7 @@ interface SongViewerProps {
 const EDITOR_FONT: React.CSSProperties = {
   fontFamily: "'Courier New', Courier, monospace",
   fontSize: "14px",
-  lineHeight: "1.65",
+  lineHeight: "1.2",
   padding: "20px 24px",
   margin: 0,
   whiteSpace: "pre-wrap",
@@ -46,7 +46,7 @@ function buildHighlight(text: string): React.ReactNode {
 
     if (!trimmed) {
       return (
-        <span key={i} style={{ display: "block", minHeight: "1.65em" }}>
+        <span key={i} style={{ display: "block", minHeight: "1.2em" }}>
           {isLast ? null : "\u00A0"}
         </span>
       );
@@ -405,13 +405,13 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             }
             if (line.type === "chords") {
               return (
-                <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-0 pt-0.5">
+                <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-0 pt-0">
                   {line.content}
                 </div>
               );
             }
             return (
-              <div key={line.key} className="font-mono tracking-normal text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-tight pb-0">
+              <div key={line.key} className="font-mono tracking-normal text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-none pb-0">
                 {line.content}
               </div>
             );
@@ -684,20 +684,20 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                 const introMatch = line.content.match(/^(\s*(?:intro(?:du[cç][aã]o)?)[:.\-]*\s*)(.*)$/i);
                 if (introMatch) {
                   return (
-                    <div key={line.key} className="font-mono tracking-normal whitespace-pre-wrap leading-none pb-0 pt-1">
+                    <div key={line.key} className="font-mono tracking-normal whitespace-pre-wrap leading-none pb-0 pt-0">
                       <span className="text-slate-500 dark:text-slate-400 font-normal">{introMatch[1]}</span>
                       <span className="font-bold text-orange-600 dark:text-orange-400">{introMatch[2]}</span>
                     </div>
                   );
                 }
                 return (
-                  <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-0 pt-1">
+                  <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-0 pt-0">
                     {line.content}
                   </div>
                 );
               }
               return (
-                <div key={line.key} className="font-mono tracking-normal text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-tight pb-0.5">
+                <div key={line.key} className="font-mono tracking-normal text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-none pb-0">
                   {line.content}
                 </div>
               );
