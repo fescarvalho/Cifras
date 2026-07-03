@@ -533,8 +533,8 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             {!isEditing && (
               <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                 <button
-                  onClick={() => setFontSize((f) => Math.max(12, f - 2))}
-                  className="min-h-[44px] min-w-[44px] flex items-center justify-center p-1.5 rounded-md active:bg-white dark:active:bg-slate-700 transition-all active:scale-95"
+                  onClick={() => setFontSize((f) => Math.max(8, f - 2))}
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 active:bg-slate-50 dark:active:bg-slate-700 transition-all active:scale-95 shadow-sm"
                   title="Diminuir fonte"
                 >
                   <span className="text-xs font-bold font-sans">A−</span>

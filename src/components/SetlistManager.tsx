@@ -443,7 +443,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
 
             {/* Font size */}
             <button
-              onClick={() => setPerfFontSize(f => Math.max(10, f - 1))}
+              onClick={() => setPerfFontSize(f => Math.max(8, f - 1))}
               className="bg-slate-800 active:bg-slate-700 text-white font-bold min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md text-xs transition-all active:scale-95"
               title="Diminuir fonte"
             >
