@@ -133,8 +133,10 @@ export async function POST(request: Request) {
         for (const item of line.items) {
           const itemX = item.transform[4];
           const fontSize = item.transform[0] || 10;
-          // Estimated width of a space character for this font size
-          const spaceWidth = Math.max(fontSize * 0.35, 3.5); 
+          // In a monospace font, every character (including space) is typically ~0.6 times the font size.
+          // By using 0.6, the number of spaces we generate perfectly matches the frontend monospace rendering.
+          const monospaceCharWidth = fontSize * 0.6;
+          const spaceWidth = Math.max(monospaceCharWidth, 6); 
           
           if (currentX > 0) {
             const gap = itemX - currentX;
@@ -150,7 +152,7 @@ export async function POST(request: Request) {
             }
           }
           let str = item.str;
-          const trueTextWidth = str.trimEnd().length * (fontSize * 0.55);
+          const trueTextWidth = str.trimEnd().length * monospaceCharWidth;
           
           if (item.width && item.width > trueTextWidth + spaceWidth * 2 && str.includes(' ')) {
             const extraWidth = item.width - trueTextWidth;
@@ -164,7 +166,7 @@ export async function POST(request: Request) {
           
           lineText += str;
           
-          currentX = itemX + (str.trimEnd().length * (fontSize * 0.55));
+          currentX = itemX + (str.trimEnd().length * monospaceCharWidth);
         }
         text += lineText.trimEnd() + '\n';
       }
