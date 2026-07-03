@@ -50,8 +50,6 @@ export function sanitizePdfText(text: string): string {
       .replace(/[\u2013\u2014]/g, '-')
       // Normalize non-breaking spaces to regular spaces
       .replace(/[\u00A0\u202F\u2009]/g, ' ')
-      // Collapse sequences of spaces/tabs to a single space per position (preserve newlines)
-      .replace(/[ \t]{2,}/g, (m) => m)
   );
 }
 

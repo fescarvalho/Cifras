@@ -95,9 +95,55 @@ export async function POST(request: Request) {
     const parser = new PDFParse({ data: buffer, verbosity: -1 });
     await parser.load();
 
-    // Use pageJoiner to insert markers between pages
+    const renderPage = async (pageData: any) => {
+      const render_options = {
+        normalizeWhitespace: false,
+        disableCombineTextItems: false
+      };
+      
+      const textContent = await pageData.getTextContent(render_options);
+      let lastY = -1;
+      let lastX = 0;
+      let text = '';
+      
+      for (let item of textContent.items) {
+        const currentY = item.transform[5];
+        const currentX = item.transform[4];
+        const fontSize = item.transform[0] || 10;
+        const charWidth = fontSize * 0.4 || 4; // Estimativa de largura do caractere
+
+        if (lastY !== -1 && Math.abs(currentY - lastY) > (fontSize * 0.2)) {
+          text += '\n';
+          if (currentX > 20) {
+            const leadingSpaces = Math.max(0, Math.round((currentX - 20) / charWidth));
+            text += ' '.repeat(leadingSpaces);
+          }
+          text += item.str;
+        } else {
+          if (lastY !== -1) {
+            const gap = currentX - lastX;
+            if (gap > (charWidth * 0.5)) {
+              const spacesCount = Math.max(1, Math.round(gap / charWidth));
+              text += ' '.repeat(spacesCount);
+            }
+          } else {
+            if (currentX > 20) {
+              const leadingSpaces = Math.max(0, Math.round((currentX - 20) / charWidth));
+              text += ' '.repeat(leadingSpaces);
+            }
+          }
+          text += item.str;
+        }
+        lastY = currentY;
+        lastX = currentX + (item.width || 0);
+      }
+      return text;
+    };
+
+    // Use pageJoiner to insert markers between pages, pass pagerender option
     const textResult = await parser.getText({
       pageJoiner: '\n--- PAGE {PAGE_NUM} ---\n',
+      pagerender: renderPage
     });
 
     let rawText: string;

@@ -56,7 +56,18 @@ export default function OfflineSyncManager({ children }: { children: ReactNode }
 
     for (const op of queue) {
       try {
-        if (op.action === 'CREATE_SETLIST') {
+        if (op.action === 'CREATE_SONG') {
+          import("@/app/actions").then(async ({ createSong }) => {
+            await createSong({
+              title: op.payload.title,
+              artist: op.payload.artist,
+              originalKey: op.payload.originalKey,
+              content: op.payload.content,
+              part: op.payload.part,
+              season: op.payload.season
+            });
+          });
+        } else if (op.action === 'CREATE_SETLIST') {
           // Send to server
           const res = await createSetlist(op.payload.title, op.payload.date);
           if (res.success && res.setlist) {

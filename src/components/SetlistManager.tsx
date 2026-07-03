@@ -2,16 +2,18 @@
 
 import React, { useState, useEffect } from "react";
 import { Setlist, Song } from "@/generated/prisma/client";
-import { getSetlistWithSongs, removeSongFromSetlist, updateSetlistOrder } from "@/app/actions";
+import { getSetlistWithSongs, removeSongFromSetlist, updateSetlistOrder, createSong, addSongToSetlist } from "@/app/actions";
 import { PART_LABELS, PART_COLORS } from "@/utils/labels";
 import SongViewer from "./SongViewer";
 import { db } from "@/lib/db-local";
 import { useOfflineSync } from "./OfflineSyncManager";
+import { Share2, Check } from "lucide-react";
 
 interface SetlistManagerProps {
   setlistId: string;
   onClose?: () => void;
   onRefreshSetlists?: () => void;
+  readOnly?: boolean;
 }
 
 interface SetlistSongWithModel {
@@ -22,7 +24,7 @@ interface SetlistSongWithModel {
   song: any;
 }
 
-export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }: SetlistManagerProps) {
+export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, readOnly = false }: SetlistManagerProps) {
   const [setlist, setSetlist] = useState<any>(null);
   const [songs, setSongs] = useState<SetlistSongWithModel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +34,11 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
   const [perfSemitones, setPerfSemitones] = useState(0);
   const [perfFontSize, setPerfFontSize] = useState(14);
   const [selectedSong, setSelectedSong] = useState<any | null>(null);
+  const [shareFeedback, setShareFeedback] = useState(false);
+  
+  const [quickTitle, setQuickTitle] = useState("");
+  const [quickPart, setQuickPart] = useState("ENTRADA");
+  const [isQuickAdding, setIsQuickAdding] = useState(false);
 
   const { isOnline } = useOfflineSync();
 
@@ -145,6 +152,100 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
         createdAt: new Date()
       });
       if (onRefreshSetlists) onRefreshSetlists();
+    }
+  };
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/repertorios/${setlistId}`;
+    const shareTitle = `Repertório: ${setlist.title}`;
+    const shareText = `Confira as cifras e tons para a missa: ${setlist.title}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (error) {
+        console.log('Compartilhamento cancelado ou falhou:', error);
+      }
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareFeedback(true);
+      setTimeout(() => setShareFeedback(false), 2000);
+    }
+  };
+
+  const handleQuickAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickTitle.trim()) return;
+    setIsQuickAdding(true);
+
+    try {
+      if (isOnline && !setlistId.startsWith('temp_')) {
+        const songRes = await createSong({
+          title: quickTitle,
+          artist: "Desconhecido",
+          originalKey: "C",
+          content: "Cifra não adicionada.",
+          part: quickPart as any,
+          season: null
+        });
+
+        if (songRes.success && songRes.song) {
+          await addSongToSetlist(setlistId, songRes.song.id);
+          setQuickTitle("");
+          loadSetlistDetails();
+          if (onRefreshSetlists) onRefreshSetlists();
+        }
+      } else {
+        const tempSongId = `temp_song_val_${Date.now()}`;
+        const newSong = {
+          id: tempSongId,
+          title: quickTitle,
+          artist: "Desconhecido",
+          originalKey: "C",
+          content: "Cifra não adicionada.",
+          part: quickPart,
+          season: null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        await db.songs.add(newSong as any);
+        
+        await db.syncQueue.add({
+          action: 'CREATE_SONG',
+          payload: newSong,
+          createdAt: new Date()
+        });
+
+        const localSetlist = await db.setlists.get(setlistId);
+        if (localSetlist) {
+          const newOrder = localSetlist.songs.length > 0 ? Math.max(...localSetlist.songs.map((s: any) => s.order)) + 1 : 1;
+          localSetlist.songs.push({
+            id: `temp_rel_${Date.now()}`,
+            setlistId: setlistId,
+            songId: tempSongId,
+            order: newOrder,
+            song: newSong as any
+          });
+          await db.setlists.put(localSetlist);
+          
+          await db.syncQueue.add({
+            action: 'ADD_SONG_TO_SETLIST',
+            payload: { setlistId, songId: tempSongId },
+            createdAt: new Date()
+          });
+        }
+        setQuickTitle("");
+        loadSetlistDetails();
+        if (onRefreshSetlists) onRefreshSetlists();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsQuickAdding(false);
     }
   };
 
@@ -297,7 +398,18 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
             Data: {new Date(setlist.date).toLocaleDateString("pt-BR", { dateStyle: "long" })}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap justify-end">
+          <button
+            onClick={handleShare}
+            className="relative overflow-hidden backdrop-blur-md bg-gradient-to-br from-amber-400/20 to-orange-500/10 dark:from-amber-500/20 dark:to-orange-600/10 border border-amber-400/40 dark:border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs md:text-sm font-bold py-2 px-3 md:px-4 min-h-[44px] rounded-xl flex items-center gap-1.5 transition-all duration-300 shadow-[0_4px_16px_rgba(245,158,11,0.15)] dark:shadow-[0_4px_16px_rgba(251,191,36,0.1)] hover:shadow-[0_4px_20px_rgba(245,158,11,0.25)] dark:hover:shadow-[0_4px_20px_rgba(251,191,36,0.2)] active:scale-95 hover:bg-amber-400/30 dark:hover:bg-amber-500/30 hover:border-amber-500/50 dark:hover:border-amber-400/50"
+            title="Compartilhar Repertório"
+          >
+            {shareFeedback ? <Check size={18} /> : <Share2 size={18} />}
+            <span className="hidden sm:inline">
+              {shareFeedback ? "Link Copiado!" : "Compartilhar"}
+            </span>
+          </button>
+          
           {songs.length > 0 && (
             <button
               onClick={() => {
@@ -326,13 +438,15 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
 
       {/* Song list in setlist */}
       {songs.length === 0 ? (
-        <div className="text-center p-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+        <div className="text-center p-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl mb-4">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Nenhuma música neste repertório ainda. Pesquise músicas ao lado e clique em "Adicionar"!
+            {readOnly 
+              ? "Nenhuma música neste repertório." 
+              : "Nenhuma música neste repertório ainda. Adicione abaixo!"}
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 mb-6">
           <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 pl-1">
             Sequência de Músicas
           </h3>
@@ -363,44 +477,77 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists }
                     {PART_LABELS[s.song.part as keyof typeof PART_LABELS]}
                   </span>
 
-                  {/* Ordering arrows */}
-                  <div className="flex items-center gap-1 sm:border-l border-slate-200 dark:border-slate-800/80 sm:pl-3">
-                    <button
-                      onClick={() => handleMove(index, "up")}
-                      disabled={index === 0}
-                      className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 active:bg-slate-200 dark:active:bg-slate-800 disabled:opacity-20 rounded-md transition-all active:scale-95"
-                      title="Mover para cima"
-                    >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => handleMove(index, "down")}
-                      disabled={index === songs.length - 1}
-                      className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 active:bg-slate-200 dark:active:bg-slate-800 disabled:opacity-20 rounded-md transition-all active:scale-95"
-                      title="Mover para baixo"
-                    >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => handleRemove(s.songId)}
-                      className="min-w-[44px] min-h-[44px] flex items-center justify-center text-rose-500 active:bg-rose-100 dark:active:bg-rose-950/40 rounded-md transition-all active:scale-95"
-                      title="Remover"
-                    >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
+                  {!readOnly && (
+                    <div className="flex items-center gap-1 sm:border-l border-slate-200 dark:border-slate-800/80 sm:pl-3">
+                      <button
+                        onClick={() => handleMove(index, "up")}
+                        disabled={index === 0}
+                        className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 active:bg-slate-200 dark:active:bg-slate-800 disabled:opacity-20 rounded-md transition-all active:scale-95"
+                        title="Mover para cima"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleMove(index, "down")}
+                        disabled={index === songs.length - 1}
+                        className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 active:bg-slate-200 dark:active:bg-slate-800 disabled:opacity-20 rounded-md transition-all active:scale-95"
+                        title="Mover para baixo"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleRemove(s.songId)}
+                        className="min-w-[44px] min-h-[44px] flex items-center justify-center text-rose-500 active:bg-rose-100 dark:active:bg-rose-950/40 rounded-md transition-all active:scale-95"
+                        title="Remover"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         </div>
       )}
+
+      {/* Formulário de Adição Rápida */}
+      {!readOnly && (
+        <form onSubmit={handleQuickAdd} className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl p-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-auto">
+          <input 
+            type="text" 
+            placeholder="Nome da música (Adição rápida)" 
+            value={quickTitle}
+            onChange={(e) => setQuickTitle(e.target.value)}
+            className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-900 dark:text-slate-100"
+          />
+          <div className="flex items-center gap-2">
+            <select
+              value={quickPart}
+              onChange={(e) => setQuickPart(e.target.value)}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-900 dark:text-slate-100"
+            >
+              {Object.entries(PART_LABELS).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              disabled={isQuickAdding || !quickTitle.trim()}
+              className="min-h-[44px] bg-violet-600 active:bg-violet-700 disabled:opacity-50 text-white font-semibold py-2.5 px-4 rounded-lg text-sm transition-all active:scale-95 shadow-sm whitespace-nowrap"
+            >
+              {isQuickAdding ? "Adicionando..." : "Adicionar"}
+            </button>
+          </div>
+        </form>
+      )}
+
       {/* Song Viewer Fullscreen Overlay Modal */}
       {selectedSong && (
         <div className="fixed inset-0 z-50 bg-slate-50 dark:bg-slate-950">
