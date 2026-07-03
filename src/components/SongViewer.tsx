@@ -395,7 +395,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
           style={{ fontSize: `${fontSize}px` }}
         >
           {renderedLines.map((line) => {
-            if (line.type === "empty") return <div key={line.key} className="h-3" />;
+            if (line.type === "empty") return <div key={line.key} className="h-1.5" />;
             if (line.type === "section") {
               return (
                 <div key={line.key} className="text-slate-400 font-bold uppercase text-[0.7em] tracking-wider pt-3 pb-1">
@@ -405,13 +405,13 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             }
             if (line.type === "chords") {
               return (
-                <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-0.5 pt-1.5">
+                <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-0 pt-0.5">
                   {line.content}
                 </div>
               );
             }
             return (
-              <div key={line.key} className="font-mono tracking-normal text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-snug pb-0.5">
+              <div key={line.key} className="font-mono tracking-normal text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-tight pb-0">
                 {line.content}
               </div>
             );
@@ -672,7 +672,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             style={{ fontSize: `${fontSize}px` }}
           >
             {renderedLines.map((line) => {
-              if (line.type === "empty") return <div key={line.key} className="h-4" />;
+              if (line.type === "empty") return <div key={line.key} className="h-2" />;
               if (line.type === "header") {
                 return (
                   <div key={line.key} className="font-sans font-bold text-slate-400 dark:text-slate-500 select-none border-b border-slate-100 dark:border-slate-800/80 pb-1 mt-6 mb-2 text-[0.85em] uppercase tracking-wider">
@@ -684,20 +684,20 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                 const introMatch = line.content.match(/^(\s*(?:intro(?:du[cç][aã]o)?)[:.\-]*\s*)(.*)$/i);
                 if (introMatch) {
                   return (
-                    <div key={line.key} className="font-mono tracking-normal whitespace-pre-wrap leading-none pb-1 pt-2">
+                    <div key={line.key} className="font-mono tracking-normal whitespace-pre-wrap leading-none pb-0 pt-1">
                       <span className="text-slate-500 dark:text-slate-400 font-normal">{introMatch[1]}</span>
                       <span className="font-bold text-orange-600 dark:text-orange-400">{introMatch[2]}</span>
                     </div>
                   );
                 }
                 return (
-                  <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-1 pt-2">
+                  <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-0 pt-1">
                     {line.content}
                   </div>
                 );
               }
               return (
-                <div key={line.key} className="font-mono tracking-normal text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed pb-1">
+                <div key={line.key} className="font-mono tracking-normal text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-tight pb-0.5">
                   {line.content}
                 </div>
               );
