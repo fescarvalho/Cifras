@@ -30,9 +30,21 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
   const dexieSongs = useLiveQuery(() => db.songs.orderBy('title').toArray(), []);
   const dexieSetlists = useLiveQuery(() => db.setlists.orderBy('date').reverse().toArray(), []);
   
-  // We'll use dexie data if available, otherwise initial data for SSR/first load
-  const songs = dexieSongs || (initialSongs as any[]);
-  const setlists = dexieSetlists || (initialSetlists as any[]);
+  const songs = useMemo(() => {
+    if (dexieSongs === undefined) return initialSongs as any[];
+    const map = new Map();
+    (initialSongs || []).forEach((s: any) => map.set(s.id, { ...s, isSynced: true }));
+    (dexieSongs || []).forEach((s: any) => map.set(s.id, s));
+    return Array.from(map.values()).sort((a: any, b: any) => a.title.localeCompare(b.title));
+  }, [initialSongs, dexieSongs]);
+
+  const setlists = useMemo(() => {
+    if (dexieSetlists === undefined) return initialSetlists as any[];
+    const map = new Map();
+    (initialSetlists || []).forEach((s: any) => map.set(s.id, { ...s, isSynced: true }));
+    (dexieSetlists || []).forEach((s: any) => map.set(s.id, s));
+    return Array.from(map.values()).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [initialSetlists, dexieSetlists]);
   
   const { isOnline, isDownloading, lastSyncTime, downloadOfflineData } = useOfflineSync();
 

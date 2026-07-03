@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Setlist } from "@/generated/prisma/client";
 import { getSetlists, deleteSetlist } from "@/app/actions";
@@ -23,8 +23,13 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
   // Use Dexie as source of truth for setlists (offline support)
   const dexieSetlists = useLiveQuery(() => db.setlists.orderBy('date').reverse().toArray(), []);
   
-  // Use dexie if available, fallback to initialSetlists
-  const setlists = dexieSetlists || (initialSetlists as any[]);
+  const setlists = useMemo(() => {
+    if (dexieSetlists === undefined) return initialSetlists as any[];
+    const map = new Map();
+    (initialSetlists || []).forEach((s: any) => map.set(s.id, { ...s, isSynced: true }));
+    (dexieSetlists || []).forEach((s: any) => map.set(s.id, s));
+    return Array.from(map.values()).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [initialSetlists, dexieSetlists]);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showCreateSetlist, setShowCreateSetlist] = useState(false);
