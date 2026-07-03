@@ -392,7 +392,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
       <div className="flex-1 overflow-y-auto px-3 py-2">
         <div
           className="w-full leading-relaxed overflow-x-auto"
-          style={{ fontSize: `${fontSize}px` }}
+          style={{ fontSize: `${fontSize}px`, fontFamily: "'Courier New', Courier, monospace" }}
         >
           {renderedLines.map((line) => {
             if (line.type === "empty") return <div key={line.key} className="h-1.5" />;
@@ -405,13 +405,13 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             }
             if (line.type === "chords") {
               return (
-                <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-0 pt-0">
+                <div key={line.key} className="font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-0 pt-0">
                   {line.content}
                 </div>
               );
             }
             return (
-              <div key={line.key} className="font-mono tracking-normal text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-none pb-0">
+              <div key={line.key} className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-none pb-0">
                 {line.content}
               </div>
             );
@@ -669,7 +669,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
           /* ── Read-only rendered view ── */
           <div
             className="max-w-4xl w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 md:p-10 shadow-sm leading-relaxed overflow-x-auto"
-            style={{ fontSize: `${fontSize}px` }}
+            style={{ fontSize: `${fontSize}px`, fontFamily: "'Courier New', Courier, monospace" }}
           >
             {renderedLines.map((line) => {
               if (line.type === "empty") return <div key={line.key} className="h-2" />;
@@ -684,20 +684,20 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                 const introMatch = line.content.match(/^(\s*(?:intro(?:du[cç][aã]o)?)[:.\-]*\s*)(.*)$/i);
                 if (introMatch) {
                   return (
-                    <div key={line.key} className="font-mono tracking-normal whitespace-pre-wrap leading-none pb-0 pt-0">
+                    <div key={line.key} className="whitespace-pre-wrap leading-none pb-0 pt-0">
                       <span className="text-slate-500 dark:text-slate-400 font-normal">{introMatch[1]}</span>
                       <span className="font-bold text-orange-600 dark:text-orange-400">{introMatch[2]}</span>
                     </div>
                   );
                 }
                 return (
-                  <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-0 pt-0">
+                  <div key={line.key} className="font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-0 pt-0">
                     {line.content}
                   </div>
                 );
               }
               return (
-                <div key={line.key} className="font-mono tracking-normal text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-none pb-0">
+                <div key={line.key} className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-none pb-0">
                   {line.content}
                 </div>
               );
