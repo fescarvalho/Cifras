@@ -44,7 +44,20 @@ export default function CreateSongModal({ onClose, onSuccess }: CreateSongModalP
         content,
       });
 
-      if (res.success) {
+      if (res.success && res.song) {
+        // Update local DB so it shows up instantly on the screen
+        await db.songs.put({
+          id: res.song.id,
+          title: res.song.title,
+          artist: res.song.artist,
+          originalKey: res.song.originalKey,
+          content: res.song.content,
+          part: res.song.part,
+          season: res.song.season,
+          createdAt: new Date(res.song.createdAt),
+          updatedAt: new Date(res.song.updatedAt),
+          isSynced: true
+        });
         onSuccess();
         onClose();
       } else {

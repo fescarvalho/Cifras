@@ -32,7 +32,17 @@ export default function CreateSetlistModal({ onClose, onSuccess }: CreateSetlist
     try {
       if (isOnline) {
         const res = await createSetlist(title, date);
-        if (res.success) {
+        if (res.success && res.setlist) {
+          // Update local DB so it shows up instantly on the screen
+          await db.setlists.put({
+            id: res.setlist.id,
+            title: res.setlist.title,
+            date: new Date(res.setlist.date),
+            songs: [],
+            createdAt: new Date(res.setlist.createdAt),
+            updatedAt: new Date(res.setlist.updatedAt),
+            isSynced: true
+          });
           onSuccess();
           onClose();
         } else {
