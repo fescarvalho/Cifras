@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { getAuthSession } from "@/lib/auth";
 import { LiturgicalPart, LiturgicalSeason } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -70,6 +71,7 @@ export async function createSong(data: {
   season?: LiturgicalSeason | null;
 }) {
   try {
+    const session = await getAuthSession();
     const song = await prisma.song.create({
       data: {
         title: data.title,
@@ -78,6 +80,7 @@ export async function createSong(data: {
         content: data.content,
         part: data.part,
         season: data.season || null,
+        userId: session.user.id,
       },
     });
     revalidatePath("/");
@@ -96,12 +99,14 @@ export async function updateSongContent(
   data: { content?: string; title?: string; artist?: string; originalKey?: string; part?: any; season?: any; referenceUrl?: string | null }
 ) {
   try {
-    const song = await prisma.song.update({
-      where: { id },
+    const session = await getAuthSession();
+    const result = await prisma.song.updateMany({
+      where: { id, userId: session.user.id },
       data,
     });
+    if (result.count === 0) throw new Error("Acesso negado");
     revalidatePath("/");
-    return { success: true, song };
+    return { success: true, song: { id, ...data } };
   } catch (error: any) {
     console.error("Failed to update song:", error);
     return { success: false, error: error.message };
@@ -159,10 +164,12 @@ export async function getSetlistWithSongs(id: string) {
  */
 export async function createSetlist(title: string, dateStr: string) {
   try {
+    const session = await getAuthSession();
     const setlist = await prisma.setlist.create({
       data: {
         title,
         date: new Date(dateStr),
+        userId: session.user.id,
       },
     });
     revalidatePath("/");
@@ -178,6 +185,11 @@ export async function createSetlist(title: string, dateStr: string) {
  */
 export async function addSongToSetlist(setlistId: string, songId: string) {
   try {
+    const session = await getAuthSession();
+    
+    const setlist = await prisma.setlist.findFirst({ where: { id: setlistId, userId: session.user.id } });
+    if (!setlist) throw new Error("Acesso negado");
+
     // Check if relationship already exists
     const existing = await prisma.setlistSong.findUnique({
       where: {
@@ -202,6 +214,7 @@ export async function addSongToSetlist(setlistId: string, songId: string) {
         setlistId,
         songId,
         order: nextOrder,
+        userId: session.user.id,
       },
     });
 
@@ -219,9 +232,12 @@ export async function addSongToSetlist(setlistId: string, songId: string) {
  */
 export async function removeSongFromSetlist(setlistId: string, songId: string) {
   try {
-    await prisma.setlistSong.delete({
+    const session = await getAuthSession();
+    await prisma.setlistSong.deleteMany({
       where: {
-        setlistId_songId: { setlistId, songId },
+        setlistId,
+        songId,
+        userId: session.user.id
       },
     });
 
@@ -252,12 +268,15 @@ export async function removeSongFromSetlist(setlistId: string, songId: string) {
  */
 export async function updateSetlistOrder(setlistId: string, songIdsInOrder: string[]) {
   try {
+    const session = await getAuthSession();
     // Perform updates in a transaction
     await prisma.$transaction(
       songIdsInOrder.map((songId, index) =>
-        prisma.setlistSong.update({
+        prisma.setlistSong.updateMany({
           where: {
-            setlistId_songId: { setlistId, songId },
+            setlistId,
+            songId,
+            userId: session.user.id
           },
           data: {
             order: index + 1,
@@ -280,9 +299,12 @@ export async function updateSetlistOrder(setlistId: string, songIdsInOrder: stri
  */
 export async function updateSetlistSongKey(setlistId: string, songId: string, selectedKey: string | null) {
   try {
-    await prisma.setlistSong.update({
+    const session = await getAuthSession();
+    await prisma.setlistSong.updateMany({
       where: {
-        setlistId_songId: { setlistId, songId },
+        setlistId,
+        songId,
+        userId: session.user.id
       },
       data: {
         selectedKey,
@@ -303,14 +325,15 @@ export async function updateSetlistSongKey(setlistId: string, songId: string, se
  */
 export async function deleteSetlist(id: string) {
   try {
+    const session = await getAuthSession();
     await prisma.$transaction([
       // 1º Passo: Apaga todos os vínculos de músicas dessa missa específica
       prisma.setlistSong.deleteMany({
-        where: { setlistId: id }
+        where: { setlistId: id, userId: session.user.id }
       }),
       // 2º Passo: Agora sim, apaga o card/repertório da missa com segurança
-      prisma.setlist.delete({
-        where: { id }
+      prisma.setlist.deleteMany({
+        where: { id, userId: session.user.id }
       })
     ]);
     revalidatePath("/");
@@ -326,9 +349,10 @@ export async function deleteSetlist(id: string) {
  */
 export async function deleteSong(id: string) {
   try {
+    const session = await getAuthSession();
     // Remove all setlist relationships first (cascade not guaranteed in all setups)
-    await prisma.setlistSong.deleteMany({ where: { songId: id } });
-    await prisma.song.delete({ where: { id } });
+    await prisma.setlistSong.deleteMany({ where: { songId: id, userId: session.user.id } });
+    await prisma.song.deleteMany({ where: { id, userId: session.user.id } });
     revalidatePath("/");
     return { success: true };
   } catch (error: any) {
@@ -347,12 +371,14 @@ export async function saveMassFromImport(data: {
   songs: { title: string; content: string; part: LiturgicalPart; referenceUrl?: string | null }[];
 }) {
   try {
+    const session = await getAuthSession();
     const result = await prisma.$transaction(async (tx) => {
       // 1. Create the setlist
       const setlist = await tx.setlist.create({
         data: {
           title: data.title,
           date: new Date(data.dateStr),
+          userId: session.user.id,
         },
       });
 
@@ -367,6 +393,7 @@ export async function saveMassFromImport(data: {
             content: s.content,
             part: s.part,
             referenceUrl: s.referenceUrl || null,
+            userId: session.user.id,
           },
         });
 
@@ -375,6 +402,7 @@ export async function saveMassFromImport(data: {
             setlistId: setlist.id,
             songId: newSong.id,
             order: i + 1,
+            userId: session.user.id,
           },
         });
       }

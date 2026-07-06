@@ -82,7 +82,8 @@ export const SongScalarFieldEnum = {
   season: 'season',
   referenceUrl: 'referenceUrl',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  userId: 'userId'
 } as const
 
 export type SongScalarFieldEnum = (typeof SongScalarFieldEnum)[keyof typeof SongScalarFieldEnum]
@@ -93,7 +94,8 @@ export const SetlistScalarFieldEnum = {
   title: 'title',
   date: 'date',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  userId: 'userId'
 } as const
 
 export type SetlistScalarFieldEnum = (typeof SetlistScalarFieldEnum)[keyof typeof SetlistScalarFieldEnum]
@@ -104,7 +106,8 @@ export const SetlistSongScalarFieldEnum = {
   setlistId: 'setlistId',
   songId: 'songId',
   order: 'order',
-  selectedKey: 'selectedKey'
+  selectedKey: 'selectedKey',
+  userId: 'userId'
 } as const
 
 export type SetlistSongScalarFieldEnum = (typeof SetlistSongScalarFieldEnum)[keyof typeof SetlistSongScalarFieldEnum]

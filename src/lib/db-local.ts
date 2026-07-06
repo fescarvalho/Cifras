@@ -57,3 +57,13 @@ db.version(2).stores({
 });
 
 export { db };
+
+export async function clearLocalOfflineData() {
+  try {
+    await db.delete();
+    await db.open();
+    console.log('Cache local Dexie limpo com sucesso.');
+  } catch (e) {
+    console.error('Erro ao limpar cache local Dexie:', e);
+  }
+}

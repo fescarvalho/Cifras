@@ -7,6 +7,7 @@ import { PART_LABELS, PART_COLORS, SEASON_LABELS } from "@/utils/labels";
 import { addSongToSetlist, updateSongContent } from "@/app/actions";
 import { useOfflineSync } from "./OfflineSyncManager";
 import { db } from "@/lib/db-local";
+import { useScreenWakeLock } from "@/hooks/useScreenWakeLock";
 
 interface SongViewerProps {
   song: Song;
@@ -177,6 +178,9 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 // Main SongViewer
 // ─────────────────────────────────────────────────────────────────────────────
 export default function SongViewer({ song, setlists = [], onClose, showBackButton = false, performanceMode = false, semitones: externalSemitones, fontSize: externalFontSize, initialKey, onChangeKey }: SongViewerProps) {
+  // Wake Lock for Repertoire view and Cipher display
+  useScreenWakeLock();
+
   const [internalSemitones, setInternalSemitones] = useState(() => {
     if (initialKey && initialKey !== song.originalKey) {
       return getSemitoneDifference(song.originalKey, initialKey);

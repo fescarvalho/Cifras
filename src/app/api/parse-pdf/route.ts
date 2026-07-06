@@ -75,13 +75,21 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File;
 
     if (!file) {
-      return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
+      return NextResponse.json({ error: "Arquivo ausente" }, { status: 400 });
+    }
+
+    // Limite de segurança contra DoS / OOM (Máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: 'O arquivo PDF não pode ultrapassar 5MB.' },
+        { status: 413 }
+      );
     }
 
     if (file.type !== 'application/pdf') {
       return NextResponse.json(
-        { error: 'Formato inválido. Apenas PDFs são aceitos.' },
-        { status: 400 }
+        { error: 'Formato de arquivo inválido. Envie apenas PDFs.' },
+        { status: 415 }
       );
     }
 

@@ -15,6 +15,7 @@ import { PART_LABELS, PART_COLORS, SEASON_LABELS, SEASON_COLORS } from "@/utils/
 import { getSongs, getSetlists, deleteSetlist, deleteSong } from "@/app/actions";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db-local";
+import { clearLocalOfflineData } from "@/lib/db-local";
 import { useOfflineSync } from "./OfflineSyncManager";
 import { CloudDownload, Loader2, CheckCircle2 } from "lucide-react";
 
@@ -96,6 +97,14 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
   const refreshData = async () => {
     if (!navigator.onLine) return; 
     // Mostly handled by dexie now, but can be used as hook
+  };
+
+  const handleLogout = async () => {
+    const confirm = window.confirm("Deseja realmente sair? Seus dados offline sincronizados serão apagados deste dispositivo.");
+    if (!confirm) return;
+    
+    await clearLocalOfflineData();
+    window.location.reload();
   };
 
   // Client-side instant filter of songs
@@ -228,6 +237,17 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
               )}
+            </button>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 active:bg-rose-100 dark:active:bg-rose-900/40 transition-all active:scale-95 shadow-sm"
+              title="Sair (Logout)"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
             </button>
 
             <Link

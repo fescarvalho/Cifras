@@ -43,6 +43,7 @@ model Song {
   referenceUrl String?           // Optional YouTube/reference link
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
+  userId       String            @default("default_user_123")
   setlists     SetlistSong[]
 }
 
@@ -53,6 +54,7 @@ model Setlist {
   songs     SetlistSong[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+  userId    String        @default("default_user_123")
 }
 
 model SetlistSong {
@@ -63,6 +65,7 @@ model SetlistSong {
   selectedKey String?  // Optional saved transposition key for this specific mass
   setlist     Setlist  @relation(fields: [setlistId], references: [id], onDelete: Cascade)
   song        Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  userId      String   @default("default_user_123")
 
   @@unique([setlistId, songId])
 }

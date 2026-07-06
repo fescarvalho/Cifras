@@ -30,6 +30,7 @@ export type SetlistMinAggregateOutputType = {
   date: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  userId: string | null
 }
 
 export type SetlistMaxAggregateOutputType = {
@@ -38,6 +39,7 @@ export type SetlistMaxAggregateOutputType = {
   date: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  userId: string | null
 }
 
 export type SetlistCountAggregateOutputType = {
@@ -46,6 +48,7 @@ export type SetlistCountAggregateOutputType = {
   date: number
   createdAt: number
   updatedAt: number
+  userId: number
   _all: number
 }
 
@@ -56,6 +59,7 @@ export type SetlistMinAggregateInputType = {
   date?: true
   createdAt?: true
   updatedAt?: true
+  userId?: true
 }
 
 export type SetlistMaxAggregateInputType = {
@@ -64,6 +68,7 @@ export type SetlistMaxAggregateInputType = {
   date?: true
   createdAt?: true
   updatedAt?: true
+  userId?: true
 }
 
 export type SetlistCountAggregateInputType = {
@@ -72,6 +77,7 @@ export type SetlistCountAggregateInputType = {
   date?: true
   createdAt?: true
   updatedAt?: true
+  userId?: true
   _all?: true
 }
 
@@ -153,6 +159,7 @@ export type SetlistGroupByOutputType = {
   date: Date
   createdAt: Date
   updatedAt: Date
+  userId: string
   _count: SetlistCountAggregateOutputType | null
   _min: SetlistMinAggregateOutputType | null
   _max: SetlistMaxAggregateOutputType | null
@@ -182,6 +189,7 @@ export type SetlistWhereInput = {
   date?: Prisma.DateTimeFilter<"Setlist"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"Setlist"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Setlist"> | Date | string
+  userId?: Prisma.StringFilter<"Setlist"> | string
   songs?: Prisma.SetlistSongListRelationFilter
 }
 
@@ -191,6 +199,7 @@ export type SetlistOrderByWithRelationInput = {
   date?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   songs?: Prisma.SetlistSongOrderByRelationAggregateInput
 }
 
@@ -203,6 +212,7 @@ export type SetlistWhereUniqueInput = Prisma.AtLeast<{
   date?: Prisma.DateTimeFilter<"Setlist"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"Setlist"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Setlist"> | Date | string
+  userId?: Prisma.StringFilter<"Setlist"> | string
   songs?: Prisma.SetlistSongListRelationFilter
 }, "id">
 
@@ -212,6 +222,7 @@ export type SetlistOrderByWithAggregationInput = {
   date?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   _count?: Prisma.SetlistCountOrderByAggregateInput
   _max?: Prisma.SetlistMaxOrderByAggregateInput
   _min?: Prisma.SetlistMinOrderByAggregateInput
@@ -226,6 +237,7 @@ export type SetlistScalarWhereWithAggregatesInput = {
   date?: Prisma.DateTimeWithAggregatesFilter<"Setlist"> | Date | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Setlist"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Setlist"> | Date | string
+  userId?: Prisma.StringWithAggregatesFilter<"Setlist"> | string
 }
 
 export type SetlistCreateInput = {
@@ -234,6 +246,7 @@ export type SetlistCreateInput = {
   date: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  userId?: string
   songs?: Prisma.SetlistSongCreateNestedManyWithoutSetlistInput
 }
 
@@ -243,6 +256,7 @@ export type SetlistUncheckedCreateInput = {
   date: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  userId?: string
   songs?: Prisma.SetlistSongUncheckedCreateNestedManyWithoutSetlistInput
 }
 
@@ -252,6 +266,7 @@ export type SetlistUpdateInput = {
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   songs?: Prisma.SetlistSongUpdateManyWithoutSetlistNestedInput
 }
 
@@ -261,6 +276,7 @@ export type SetlistUncheckedUpdateInput = {
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   songs?: Prisma.SetlistSongUncheckedUpdateManyWithoutSetlistNestedInput
 }
 
@@ -270,6 +286,7 @@ export type SetlistCreateManyInput = {
   date: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  userId?: string
 }
 
 export type SetlistUpdateManyMutationInput = {
@@ -278,6 +295,7 @@ export type SetlistUpdateManyMutationInput = {
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type SetlistUncheckedUpdateManyInput = {
@@ -286,6 +304,7 @@ export type SetlistUncheckedUpdateManyInput = {
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type SetlistCountOrderByAggregateInput = {
@@ -294,6 +313,7 @@ export type SetlistCountOrderByAggregateInput = {
   date?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
 }
 
 export type SetlistMaxOrderByAggregateInput = {
@@ -302,6 +322,7 @@ export type SetlistMaxOrderByAggregateInput = {
   date?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
 }
 
 export type SetlistMinOrderByAggregateInput = {
@@ -310,6 +331,7 @@ export type SetlistMinOrderByAggregateInput = {
   date?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
 }
 
 export type SetlistScalarRelationFilter = {
@@ -337,6 +359,7 @@ export type SetlistCreateWithoutSongsInput = {
   date: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  userId?: string
 }
 
 export type SetlistUncheckedCreateWithoutSongsInput = {
@@ -345,6 +368,7 @@ export type SetlistUncheckedCreateWithoutSongsInput = {
   date: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  userId?: string
 }
 
 export type SetlistCreateOrConnectWithoutSongsInput = {
@@ -369,6 +393,7 @@ export type SetlistUpdateWithoutSongsInput = {
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type SetlistUncheckedUpdateWithoutSongsInput = {
@@ -377,6 +402,7 @@ export type SetlistUncheckedUpdateWithoutSongsInput = {
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 
@@ -416,6 +442,7 @@ export type SetlistSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   date?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  userId?: boolean
   songs?: boolean | Prisma.Setlist$songsArgs<ExtArgs>
   _count?: boolean | Prisma.SetlistCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["setlist"]>
@@ -426,6 +453,7 @@ export type SetlistSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   date?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  userId?: boolean
 }, ExtArgs["result"]["setlist"]>
 
 export type SetlistSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -434,6 +462,7 @@ export type SetlistSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   date?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  userId?: boolean
 }, ExtArgs["result"]["setlist"]>
 
 export type SetlistSelectScalar = {
@@ -442,9 +471,10 @@ export type SetlistSelectScalar = {
   date?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  userId?: boolean
 }
 
-export type SetlistOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "date" | "createdAt" | "updatedAt", ExtArgs["result"]["setlist"]>
+export type SetlistOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "date" | "createdAt" | "updatedAt" | "userId", ExtArgs["result"]["setlist"]>
 export type SetlistInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   songs?: boolean | Prisma.Setlist$songsArgs<ExtArgs>
   _count?: boolean | Prisma.SetlistCountOutputTypeDefaultArgs<ExtArgs>
@@ -463,6 +493,7 @@ export type $SetlistPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     date: Date
     createdAt: Date
     updatedAt: Date
+    userId: string
   }, ExtArgs["result"]["setlist"]>
   composites: {}
 }
@@ -892,6 +923,7 @@ export interface SetlistFieldRefs {
   readonly date: Prisma.FieldRef<"Setlist", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Setlist", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Setlist", 'DateTime'>
+  readonly userId: Prisma.FieldRef<"Setlist", 'String'>
 }
     
 

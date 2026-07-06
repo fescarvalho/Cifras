@@ -9,6 +9,7 @@ import SongViewer from "./SongViewer";
 import { db } from "@/lib/db-local";
 import { useOfflineSync } from "./OfflineSyncManager";
 import { Share2, Check, CloudDownload, Loader2 } from "lucide-react";
+import { useScreenWakeLock } from "@/hooks/useScreenWakeLock";
 
 interface SetlistManagerProps {
   setlistId: string;
@@ -27,6 +28,7 @@ interface SetlistSongWithModel {
 }
 
 export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, readOnly = false }: SetlistManagerProps) {
+  useScreenWakeLock();
   const [setlist, setSetlist] = useState<any>(null);
   const [songs, setSongs] = useState<SetlistSongWithModel[]>([]);
   const [loading, setLoading] = useState(true);
