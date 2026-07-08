@@ -368,7 +368,7 @@ export async function deleteSong(id: string) {
 export async function saveMassFromImport(data: {
   title: string;
   dateStr: string;
-  songs: { title: string; content: string; part: LiturgicalPart; referenceUrl?: string | null }[];
+  songs: { title: string; content: string; part: LiturgicalPart; referenceUrl?: string | null; key?: string }[];
 }) {
   try {
     const session = await getAuthSession();
@@ -389,7 +389,7 @@ export async function saveMassFromImport(data: {
           data: {
             title: s.title || `Música ${i + 1}`,
             artist: "Desconhecido", // Default for imported
-            originalKey: "C", // Default key
+            originalKey: s.key || "C",
             content: s.content,
             part: s.part,
             referenceUrl: s.referenceUrl || null,

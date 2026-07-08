@@ -4,7 +4,7 @@ import { useRef, useCallback, useState } from "react";
 import { LiturgicalPart } from "@/generated/prisma/client";
 import { saveMassFromImport } from "@/app/actions";
 import { useRouter } from "next/navigation";
-import { isChordLine, sanitizePdfText } from "@/utils/chordTransposer";
+import { isChordLine, sanitizePdfText, autoDetectKey } from "@/utils/chordTransposer";
 import { PART_LABELS } from "@/utils/labels";
 
 interface ExtractedSong {
@@ -13,8 +13,8 @@ interface ExtractedSong {
   content: string;
   part: LiturgicalPart;
   referenceUrl: string;
+  key: string;
 }
-
 const LITURGICAL_PARTS = [
   "ENTRADA", "PERDAO", "GLORIA", "SALMO", "ACLAMACAO", "OFERTORIO",
   "SANTO", "RESPOSTAS_EUCARISTICAS", "AMEM", "CORDEIRO",
@@ -285,6 +285,16 @@ function SongCard({
               ))}
             </select>
           </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Tom (Key)</label>
+            <input
+              type="text"
+              value={song.key}
+              onChange={(e) => onUpdate(song.id, "key", e.target.value)}
+              placeholder="Ex: C, F#m"
+              className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
+          </div>
         </div>
 
         {/* Reference URL */}
@@ -351,10 +361,14 @@ export default function PdfImport() {
       if (!res.ok) throw new Error(data.error || "Erro ao processar o PDF.");
 
       // Sanitize content before showing to the editor
-      setSongs(data.songs.map((s: ExtractedSong) => ({
-        ...s,
-        content: sanitizePdfText(s.content),
-      })));
+      setSongs(data.songs.map((s: ExtractedSong) => {
+        const sanitizedContent = sanitizePdfText(s.content);
+        return {
+          ...s,
+          content: sanitizedContent,
+          key: autoDetectKey(sanitizedContent),
+        };
+      }));
       if (!massTitle) setMassTitle(file.name.replace(/\.pdf$/i, ""));
       if (!massDate) setMassDate(new Date().toISOString().split("T")[0]);
     } catch (err: any) {
@@ -384,7 +398,7 @@ export default function PdfImport() {
       const res = await saveMassFromImport({
         title: massTitle,
         dateStr: massDate,
-        songs: songs.map((s) => ({ title: s.title, content: s.content, part: s.part, referenceUrl: s.referenceUrl || null })),
+        songs: songs.map((s) => ({ title: s.title, content: s.content, part: s.part, referenceUrl: s.referenceUrl || null, key: s.key || "C" })),
       });
 
       if (!res.success) throw new Error(res.error);

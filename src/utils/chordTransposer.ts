@@ -104,6 +104,39 @@ export function isChordLine(line: string): boolean {
   // Every single remaining token must be a valid chord
   return chordTokens.every((token) => CHORD_REGEX.test(token));
 }
+
+/**
+ * Auto-detects the original key from the first valid chord line in the content.
+ * It focuses on the base note (e.g. F#m7 -> F#m, C/E -> C).
+ * If no valid chord is found, it falls back to "C".
+ */
+export function autoDetectKey(content: string): string {
+  const lines = content.split('\n');
+  for (const line of lines) {
+    if (isChordLine(line)) {
+      const stripped = line.replace(/[\s|\-–—:.]+/g, ' ').trim();
+      const tokens = stripped.split(/\s+/).filter(Boolean);
+      
+      for (const token of tokens) {
+        const lower = token.toLowerCase();
+        if (lower === 'intro' || lower === 'introdução' || lower === 'introducao') {
+          continue;
+        }
+        
+        if (CHORD_REGEX.test(token)) {
+          // Extract base note + optional minor 'm' (ignore slash bass or complex extensions)
+          // E.g., F#m7 -> F#m, A9 -> A, C#dim -> C#
+          // Also handle cases where the regex matches 'M', 'maj', etc. But let's just stick to base + minor.
+          const match = token.match(/^([A-G](?:#|b)?(?:m)?)/);
+          if (match) {
+            return match[1];
+          }
+        }
+      }
+    }
+  }
+  return 'C';
+}
 /**
  * Transposes a single note by a given number of semitones, outputting in the preferred accidental scale.
  */

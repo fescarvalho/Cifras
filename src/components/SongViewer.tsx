@@ -181,18 +181,19 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   // Wake Lock for Repertoire view and Cipher display
   useScreenWakeLock();
 
-  const [internalSemitones, setInternalSemitones] = useState(() => {
-    if (initialKey && initialKey !== song.originalKey) {
-      return getSemitoneDifference(song.originalKey, initialKey);
-    }
-    return 0;
-  });
+  const [internalCurrentKey, setInternalCurrentKey] = useState<string>(initialKey || song.originalKey || "C");
   const [internalFontSize, setInternalFontSize] = useState(16);
 
-  const semitones = externalSemitones ?? internalSemitones;
-  const setSemitones = setInternalSemitones;
-  const fontSize = externalFontSize ?? internalFontSize;
+  // Sync with external initialKey if it changes (e.g. from Performance Mode footer)
+  React.useEffect(() => {
+    if (initialKey) {
+      setInternalCurrentKey(initialKey);
+    }
+  }, [initialKey]);
+
+  const currentKey = internalCurrentKey;
   const setFontSize = setInternalFontSize;
+  const fontSize = externalFontSize ?? internalFontSize;
   const [selectedSetlistId, setSelectedSetlistId] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
@@ -209,9 +210,10 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
 
   const preferredScale = useMemo(() => getPreferredScale(song.content), [song.content]);
 
-  const currentKey = useMemo(() => {
-    return getTransposedKey(song.originalKey, semitones, preferredScale);
-  }, [song.originalKey, semitones, preferredScale]);
+  // Derive semitones from originalKey and currentKey for transposition
+  const semitones = useMemo(() => {
+    return getSemitoneDifference(song.originalKey || "C", currentKey);
+  }, [song.originalKey, currentKey]);
 
   const onChangeKeyRef = useRef(onChangeKey);
   const lastFiredKey = useRef<string | null>(initialKey || null);
@@ -220,13 +222,20 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
     onChangeKeyRef.current = onChangeKey;
   }, [onChangeKey]);
 
-  // Hook to notify parent component when currentKey changes via UI interactions
+  // Hook to notify parent component when currentKey changes via UI interactions, with Debounce
   React.useEffect(() => {
-    if (onChangeKeyRef.current && currentKey && currentKey !== lastFiredKey.current) {
-      lastFiredKey.current = currentKey;
-      onChangeKeyRef.current(currentKey);
-    }
+    const handler = setTimeout(() => {
+      if (onChangeKeyRef.current && currentKey && currentKey !== lastFiredKey.current) {
+        lastFiredKey.current = currentKey;
+        onChangeKeyRef.current(currentKey);
+      }
+    }, 500); // 500ms debounce
+    return () => clearTimeout(handler);
   }, [currentKey]);
+
+  const handleTranspose = (direction: -1 | 1) => {
+    setInternalCurrentKey(prev => getTransposedKey(prev, direction, preferredScale));
+  };
 
   const renderedLines = useMemo(() => {
     const sanitized = sanitizePdfText(song.content ?? "");
@@ -519,8 +528,9 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             {!isEditing && (
               <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                 <button
-                  onClick={() => setSemitones((s) => s - 1)}
+                  onClick={() => handleTranspose(-1)}
                   className="min-h-[44px] min-w-[44px] flex items-center justify-center px-3 py-1.5 text-sm font-semibold active:bg-white dark:active:bg-slate-700 active:shadow-sm rounded-md transition-all active:scale-95"
+                  title="Transpor -1 Tom (-1 Bemol)"
                 >
                   − Tom
                 </button>
@@ -533,8 +543,9 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                   )}
                 </div>
                 <button
-                  onClick={() => setSemitones((s) => s + 1)}
+                  onClick={() => handleTranspose(1)}
                   className="min-h-[44px] min-w-[44px] flex items-center justify-center px-3 py-1.5 text-sm font-semibold active:bg-white dark:active:bg-slate-700 active:shadow-sm rounded-md transition-all active:scale-95"
+                  title="Transpor +1 Tom (+1 Sustenido)"
                 >
                   + Tom
                 </button>
