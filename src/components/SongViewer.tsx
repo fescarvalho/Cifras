@@ -198,6 +198,10 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   const [isAdding, setIsAdding] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
 
+  // True original key edit state
+  const [isEditingOriginalKey, setIsEditingOriginalKey] = useState(false);
+  const [isUpdatingOriginalKey, setIsUpdatingOriginalKey] = useState(false);
+
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(song.content);
@@ -232,6 +236,42 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
     }, 500); // 500ms debounce
     return () => clearTimeout(handler);
   }, [currentKey]);
+
+  const handleOriginalKeyChange = async (newKey: string) => {
+    setIsUpdatingOriginalKey(true);
+    try {
+      if (isOnline) {
+        await fetch(`/api/songs/${song.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ originalKey: newKey })
+        });
+      } else {
+        await db.syncQueue.add({
+          action: 'UPDATE_SONG_CONTENT',
+          payload: { id: song.id, originalKey: newKey },
+          createdAt: new Date()
+        });
+      }
+      
+      // Update local db
+      await db.songs.update(song.id, { originalKey: newKey });
+      
+      // Mutate current song object
+      song.originalKey = newKey;
+      
+      // Update the current key to match the new original key so it stays visually the same
+      setInternalCurrentKey(newKey);
+      
+      setMessage({ text: "Tom original atualizado!", type: "success" });
+      setTimeout(() => setMessage({ text: "", type: "" }), 3000);
+    } catch (e: any) {
+      setMessage({ text: `Erro: ${e.message}`, type: "error" });
+    } finally {
+      setIsUpdatingOriginalKey(false);
+      setIsEditingOriginalKey(false);
+    }
+  };
 
   const handleTranspose = (direction: -1 | 1) => {
     setInternalCurrentKey(prev => getTransposedKey(prev, direction, preferredScale));
@@ -469,6 +509,47 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${PART_COLORS[song.part]} ml-2`}>
               {PART_LABELS[song.part]}
             </span>
+            {/* Original Key Editor Badge */}
+            {isEditingOriginalKey ? (
+              <div className="flex items-center gap-1 ml-2">
+                <select
+                  value={song.originalKey || "C"}
+                  onChange={(e) => handleOriginalKeyChange(e.target.value)}
+                  disabled={isUpdatingOriginalKey}
+                  className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded py-0.5 px-2 text-xs focus:outline-none"
+                >
+                  <option disabled value="">Tom real da cifra</option>
+                  {['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'].map(k => (
+                    <option key={k} value={k}>{k}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => setIsEditingOriginalKey(false)}
+                  className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 px-1"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+                {isUpdatingOriginalKey && <span className="text-[10px] text-slate-500">...</span>}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 ml-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Tom Original: {song.originalKey}
+                </span>
+                {!isEditing && (
+                  <button
+                    onClick={() => setIsEditingOriginalKey(true)}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                    title="Corrigir Tom Original"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            )}
             {song.referenceUrl && (
               <a
                 href={song.referenceUrl}

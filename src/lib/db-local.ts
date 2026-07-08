@@ -34,7 +34,7 @@ export interface LocalSetlist {
   isSynced: boolean;
 }
 
-export type SyncAction = 'CREATE_SETLIST' | 'UPDATE_SETLIST_ORDER' | 'REMOVE_SONG_FROM_SETLIST' | 'ADD_SONG_TO_SETLIST' | 'DELETE_SETLIST' | 'CREATE_SONG' | 'UPDATE_SETLIST_SONG_KEY';
+export type SyncAction = 'CREATE_SETLIST' | 'UPDATE_SETLIST_ORDER' | 'REMOVE_SONG_FROM_SETLIST' | 'ADD_SONG_TO_SETLIST' | 'DELETE_SETLIST' | 'CREATE_SONG' | 'UPDATE_SETLIST_SONG_KEY' | 'UPDATE_SONG_CONTENT';
 
 export interface SyncOperation {
   id?: number; // Auto-incremented by Dexie
