@@ -334,6 +334,7 @@ export default function PdfImport() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [songs, setSongs] = useState<ExtractedSong[]>([]);
+  const [mergePages, setMergePages] = useState(false);
 
   const [massTitle, setMassTitle] = useState("");
   const [massDate, setMassDate] = useState("");
@@ -353,6 +354,7 @@ export default function PdfImport() {
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("mergePages", mergePages.toString());
 
     try {
       const res = await fetch("/api/parse-pdf", { method: "POST", body: formData });
@@ -435,6 +437,16 @@ export default function PdfImport() {
               {file && <span className="text-xs text-slate-400">{(file.size / 1024).toFixed(1)} KB</span>}
             </div>
             <input type="file" accept="application/pdf" onChange={handleFileChange} className="hidden" />
+          </label>
+
+          <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 font-medium cursor-pointer">
+            <input
+              type="checkbox"
+              checked={mergePages}
+              onChange={(e) => setMergePages(e.target.checked)}
+              className="w-4 h-4 text-violet-600 border-slate-300 rounded focus:ring-violet-500"
+            />
+            O PDF inteiro é uma única música (juntar as páginas)
           </label>
 
           {error && (

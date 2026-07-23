@@ -73,6 +73,7 @@ export async function POST(request: Request) {
     // ── 1. Validate input ──────────────────────────────────────────────────
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const mergePages = formData.get('mergePages') === 'true';
 
     if (!file) {
       return NextResponse.json({ error: "Arquivo ausente" }, { status: 400 });
@@ -196,10 +197,16 @@ export async function POST(request: Request) {
     // We already built rawText in the loop above.
 
     // ── 4. Split by page markers ───────────────────────────────────────────
-    const rawSongs = rawText
-      .split(/---\s*PAGE\s*\d+\s*---/i)
-      .map((block) => block.trim())
-      .filter((block) => block.length > 20); // Ignore tiny/empty fragments
+    let rawSongs: string[] = [];
+    if (mergePages) {
+      // Remove the page markers entirely to make it one seamless text
+      rawSongs = [rawText.replace(/---\s*PAGE\s*\d+\s*---/gi, '\n').trim()];
+    } else {
+      rawSongs = rawText
+        .split(/---\s*PAGE\s*\d+\s*---/i)
+        .map((block) => block.trim())
+        .filter((block) => block.length > 20); // Ignore tiny/empty fragments
+    }
 
     // ── 5. Structure each block ────────────────────────────────────────────
     const extractedSongs = rawSongs.map((block, index) => {

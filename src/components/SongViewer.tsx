@@ -61,7 +61,7 @@ function buildHighlight(text: string): React.ReactNode {
       );
     }
     if (isChordLine(line)) {
-      const introMatch = line.match(/^(\s*(?:intro(?:du[cç][aã]o)?)[:.\-]*\s*)(.*)$/i);
+      const introMatch = line.match(/^(\s*\[?(?:intro(?:du[cç][aã]o)?)\]?[:.\-]*\s*)(.*)$/i);
       if (introMatch) {
         return (
           <span key={i} style={{ display: "block" }}>
@@ -785,7 +785,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                 );
               }
               if (line.type === "chords") {
-                const introMatch = line.content.match(/^(\s*(?:intro(?:du[cç][aã]o)?)[:.\-]*\s*)(.*)$/i);
+                const introMatch = line.content.match(/^(\s*\[?(?:intro(?:du[cç][aã]o)?)\]?[:.\-]*\s*)(.*)$/i);
                 if (introMatch) {
                   return (
                     <div key={line.key} className="font-mono tracking-normal whitespace-pre-wrap leading-none pb-1 pt-2">

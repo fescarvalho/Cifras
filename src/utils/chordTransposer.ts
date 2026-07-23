@@ -23,7 +23,7 @@ const NOTE_TO_SEMITONE: { [key: string]: number } = {
  * - Slash / inverted bass: /A, /F#, /Cb
  */
 const CHORD_REGEX =
-  /^\(?[A-G](?:#|b)?(?:(?:maj|min|aug|dim|sus|add)(?:\d{1,2})?|[mMº°\+])?(?:\d{1,2}(?:M|\+?)?)?(?:(?:b|#)(?:5|9|11|13))*(?:\([^)]{1,10}\))?(?:\/[A-G](?:#|b)?)?\)?$/;
+  /^\(?[A-G](?:#|b)?(?:(?:maj|min|aug|dim|sus|add)(?:\d{1,2})?|[mMº°\+])?(?:\d{1,2}(?:M|\+?)?)?(?:\/\d{1,2})*(?:(?:b|#)(?:5|9|11|13))*(?:\([^)]{1,10}\))?(?:\/[A-G](?:#|b)?)?\)?$/;
 
 /** Tokens that are structural separators and do not count as chords or invalid words. */
 const STRUCTURAL_RE = /^[|:\-\[\]()+\/]+$/;
@@ -86,7 +86,7 @@ export function isChordLine(line: string): boolean {
   // Remove all structural separators so they don't pollute the token list
   // Keeps letters, digits, #, b, +, (, ) — the core chord characters
   // Included en-dash (–) and em-dash (—) commonly found in copy-pasted texts.
-  const stripped = trimmed.replace(/[\s|\-–—:.]+/g, ' ').trim();
+  const stripped = trimmed.replace(/[\s|\-–—:.\[\]]+/g, ' ').trim();
   if (!stripped) return false;
 
   const tokens = stripped.split(/\s+/).filter(Boolean);
@@ -158,9 +158,6 @@ function transposeNote(note: string, semitones: number, preferredScale: string[]
 export function transposeChord(chord: string, semitones: number, preferredScale: string[]): string {
   if (semitones === 0) return chord;
 
-  // Check if it's a slash chord (e.g., G/B)
-  const parts = chord.split('/');
-  
   const transposeRoot = (c: string): string => {
     // Match root note: letter A-G, optionally followed by # or b
     const match = c.match(/^([A-G](?:#|b)?)(.*)$/);
@@ -170,15 +167,23 @@ export function transposeChord(chord: string, semitones: number, preferredScale:
     return transposedRoot + extension;
   };
 
-  const transposedMain = transposeRoot(parts[0]);
-  if (parts.length > 1) {
-    const bassNote = parts[1];
-    // The bass note is just a note (e.g., B, F#)
+  // Find if there is an inverted bass note at the end.
+  // It must be a slash followed by A-G optionally followed by # or b.
+  const bassMatch = chord.match(/\/([A-G](?:#|b)?)$/);
+  
+  if (bassMatch) {
+    // It has a bass note. Split into main chord and bass note.
+    const bassNote = bassMatch[1];
+    const mainChord = chord.slice(0, -bassMatch[0].length);
+    
+    const transposedMain = transposeRoot(mainChord);
     const transposedBass = transposeNote(bassNote, semitones, preferredScale);
     return `${transposedMain}/${transposedBass}`;
   }
 
-  return transposedMain;
+  // If no bass note, just transpose the root of the whole string
+  // (which might contain /9, /11, etc. but those don't start with A-G)
+  return transposeRoot(chord);
 }
 
 /**
