@@ -1,0 +1,33 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Executa todo dia às 12:00 UTC (09:00 Brasília).
+    # O Supabase pausa após 7 dias sem atividade — pingar 1x/dia é mais que suficiente.
+    - cron: '0 12 * * *'
+  workflow_dispatch: # Permite rodar manualmente pelo painel do GitHub
+
+jobs:
+  ping:
+    name: Ping Supabase via API
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping /api/cron/ping
+        run: |
+          echo "Pinging ${{ secrets.APP_URL }}/api/cron/ping ..."
+          
+          HTTP_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+            --max-time 30 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/ping")
+          
+          echo "HTTP Status: $HTTP_STATUS"
+          
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ Supabase está acordado!"
+          else
+            echo "❌ Falha no ping. Status: $HTTP_STATUS"
+            exit 1
+          fi
