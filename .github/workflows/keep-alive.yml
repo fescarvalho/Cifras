@@ -14,21 +14,31 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: Ping /api/cron/ping
+      - name: Ping Supabase REST API
         run: |
-          echo "Pinging ${{ secrets.APP_URL }}/api/cron/ping ..."
+          echo "Pinging Supabase REST API diretamente..."
           
+          if [ -z "${{ secrets.SUPABASE_URL }}" ] || [ -z "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
+            echo "❌ Faltam as secrets SUPABASE_URL e SUPABASE_ANON_KEY no repositório."
+            echo "Vá em Settings > Secrets and variables > Actions e adicione-as."
+            exit 1
+          fi
+          
+          # Fazer uma requisição GET para a API REST do Supabase. 
+          # O Supabase só contabiliza como atividade requisições feitas pela API REST, GraphQL ou Auth.
+          # Conexões diretas via banco de dados (Prisma/pg) NÃO contam como atividade!
           HTTP_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
             --max-time 30 \
             --location \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.APP_URL }}/api/cron/ping")
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/")
           
           echo "HTTP Status: $HTTP_STATUS"
           
-          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-            echo "✅ Supabase está acordado!"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 405 ]; then
+            echo "✅ Supabase recebeu a atividade com sucesso!"
           else
-            echo "❌ Falha no ping. Status: $HTTP_STATUS"
+            echo "❌ Falha no ping da API. Status: $HTTP_STATUS"
             exit 1
           fi
