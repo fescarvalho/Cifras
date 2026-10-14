@@ -27,17 +27,15 @@ function createPrismaClient() {
   // Supabase connection pooler (Supavisor/PgBouncer) drops idle connections quickly.
   // We configure short idleTimeout and active keep-alive so dead sockets are discarded
   // immediately rather than hanging future user queries.
+  // Note: we do NOT override ssl with an object, allowing the driver to preserve SNI for the pooler.
   const pool = new pg.Pool({
     connectionString,
     max: 2,
     idleTimeoutMillis: 3_000, // discard idle sockets quickly to prevent zombie connections
-    connectionTimeoutMillis: 5_000, // fail fast (5s) instead of freezing the UI for 15s+
+    connectionTimeoutMillis: 8_000, // fail fast (8s) instead of freezing the UI for 15s+
     keepAlive: true,
     keepAliveInitialDelayMillis: 10_000,
     allowExitOnIdle: true,
-    ssl: {
-      rejectUnauthorized: false,
-    },
   });
 
   pool.on("error", (err) => {
@@ -48,7 +46,7 @@ function createPrismaClient() {
   const adapter = new PrismaPg(pool);
   const baseClient = new PrismaClient({ adapter });
 
-  // Add auto-retry extension: if a query encounters a dead/stale connection after idle,
+  // Add auto-retry extension for model queries: if a query encounters a dead connection after idle,
   // it waits briefly (allowing the pool to open a fresh socket) and transparently retries.
   return baseClient.$extends({
     query: {
@@ -65,18 +63,6 @@ function createPrismaClient() {
             throw error;
           }
         },
-      },
-      async $queryRaw({ args, query }) {
-        try {
-          return await query(args);
-        } catch (error: any) {
-          if (isConnectionError(error)) {
-            console.warn("[prisma] Conexão inativa detectada em $queryRaw. Reconectando automaticamente...");
-            await new Promise((resolve) => setTimeout(resolve, 300));
-            return await query(args);
-          }
-          throw error;
-        }
       },
     },
   });
@@ -99,13 +85,13 @@ if (!globalForPrisma.prisma) {
 export async function pingDatabase(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
   const start = Date.now();
   try {
-    await prisma.$queryRaw`SELECT 1;`;
+    await prisma.song.findFirst({ select: { id: true } });
     return { ok: true, latencyMs: Date.now() - start };
   } catch (error: any) {
-    // Retry once after cold start
+    // Retry once after cold start / idle reconnection
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      await prisma.$queryRaw`SELECT 1;`;
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      await prisma.song.findFirst({ select: { id: true } });
       return { ok: true, latencyMs: Date.now() - start };
     } catch (retryError: any) {
       return {
@@ -116,4 +102,5 @@ export async function pingDatabase(): Promise<{ ok: boolean; latencyMs: number; 
     }
   }
 }
+
 

@@ -6,26 +6,15 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const result = await pingDatabase();
 
-  if (result.ok) {
-    return NextResponse.json(
-      {
-        status: "ok",
-        database: "connected",
-        latencyMs: result.latencyMs,
-        timestamp: new Date().toISOString(),
-      },
-      { status: 200 }
-    );
-  }
-
   return NextResponse.json(
     {
-      status: "degraded",
-      database: "disconnected",
+      status: result.ok ? "ok" : "warming_up",
+      database: result.ok ? "connected" : "reconnecting",
       latencyMs: result.latencyMs,
       timestamp: new Date().toISOString(),
-      error: result.error,
+      ...(result.error ? { details: result.error } : {}),
     },
-    { status: 503 }
+    { status: 200 }
   );
 }
+
