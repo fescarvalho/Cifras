@@ -9,8 +9,8 @@ export async function PATCH(request: Request, context: any) {
     
     // Using context.params directly without awaiting for Next.js 14 compatibility, 
     // or await it if it's Next.js 15. The prompt doesn't specify so we just use it.
-    const params = context.params;
-    const id = params.id;
+    const resolvedParams = await Promise.resolve(context.params);
+    const id = resolvedParams.id;
     const body = await request.json();
     
     if (body.originalKey) {

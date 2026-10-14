@@ -2,28 +2,118 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient | undefined };
+// Helper to identify transient connection drops caused by Supabase idle timeouts
+function isConnectionError(error: any): boolean {
+  if (!error) return false;
+  const msg = String(error?.message || error).toLowerCase();
+  return (
+    msg.includes("connection terminated") ||
+    msg.includes("econnreset") ||
+    msg.includes("etimedout") ||
+    msg.includes("57p01") ||
+    msg.includes("closed") ||
+    msg.includes("not queryable") ||
+    msg.includes("terminating connection") ||
+    msg.includes("socket") ||
+    msg.includes("broken pipe") ||
+    msg.includes("connection refused") ||
+    msg.includes("can't reach database server")
+  );
+}
 
 function createPrismaClient() {
-  // Prefer DATABASE_URL (PgBouncer) for Vercel serverless compatibility.
-  // Use a single pg.Pool (not layered on top of PgBouncer's own pooling).
   const connectionString = process.env.DATABASE_URL ?? process.env.DIRECT_URL;
 
+  // Supabase connection pooler (Supavisor/PgBouncer) drops idle connections quickly.
+  // We configure short idleTimeout and active keep-alive so dead sockets are discarded
+  // immediately rather than hanging future user queries.
   const pool = new pg.Pool({
     connectionString,
     max: 2,
-    idleTimeoutMillis: 10_000,
-    connectionTimeoutMillis: 15_000,
+    idleTimeoutMillis: 3_000, // discard idle sockets quickly to prevent zombie connections
+    connectionTimeoutMillis: 5_000, // fail fast (5s) instead of freezing the UI for 15s+
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10_000,
+    allowExitOnIdle: true,
+    ssl: {
+      rejectUnauthorized: false,
+    },
   });
 
   pool.on("error", (err) => {
-    console.error("[pg pool] Unexpected error:", err.message);
+    // Expected when Supabase closes idle pooler connections; ignore or log lightly
+    console.warn("[pg pool] Conexão ociosa reciclada pelo pooler/Supabase:", err.message);
   });
 
   const adapter = new PrismaPg(pool);
-  return new PrismaClient({ adapter });
+  const baseClient = new PrismaClient({ adapter });
+
+  // Add auto-retry extension: if a query encounters a dead/stale connection after idle,
+  // it waits briefly (allowing the pool to open a fresh socket) and transparently retries.
+  return baseClient.$extends({
+    query: {
+      $allModels: {
+        async $allOperations({ operation, model, args, query }) {
+          try {
+            return await query(args);
+          } catch (error: any) {
+            if (isConnectionError(error)) {
+              console.warn(`[prisma] Conexão inativa detectada em ${model}.${operation}. Reconectando automaticamente...`);
+              await new Promise((resolve) => setTimeout(resolve, 300));
+              return await query(args);
+            }
+            throw error;
+          }
+        },
+      },
+      async $queryRaw({ args, query }) {
+        try {
+          return await query(args);
+        } catch (error: any) {
+          if (isConnectionError(error)) {
+            console.warn("[prisma] Conexão inativa detectada em $queryRaw. Reconectando automaticamente...");
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            return await query(args);
+          }
+          throw error;
+        }
+      },
+    },
+  });
 }
+
+type ExtendedPrismaClient = ReturnType<typeof createPrismaClient>;
+
+const globalForPrisma = globalThis as unknown as { prisma: ExtendedPrismaClient | undefined };
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// Always preserve on globalThis to prevent multiple connection pools in serverless warm containers
+if (!globalForPrisma.prisma) {
+  globalForPrisma.prisma = prisma;
+}
+
+/**
+ * Lightweight health check helper to verify Supabase connectivity
+ */
+export async function pingDatabase(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
+  const start = Date.now();
+  try {
+    await prisma.$queryRaw`SELECT 1;`;
+    return { ok: true, latencyMs: Date.now() - start };
+  } catch (error: any) {
+    // Retry once after cold start
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await prisma.$queryRaw`SELECT 1;`;
+      return { ok: true, latencyMs: Date.now() - start };
+    } catch (retryError: any) {
+      return {
+        ok: false,
+        latencyMs: Date.now() - start,
+        error: retryError?.message || String(retryError),
+      };
+    }
+  }
+}
+
