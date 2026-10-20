@@ -11,11 +11,15 @@ const VALID_LITURGICAL_PARTS = [
   'COMUNHAO', 'ACAO_DE_GRACAS', 'CANTO_FINAL', 'ESPECIAL',
 ] as const;
 
-const GEMINI_MODELS = [
+const defaultModels = [
+  'gemini-3.8-flash',
+  'gemini-3-flash',
   'gemini-2.5-flash',
   'gemini-1.5-flash',
-  'gemini-2.0-flash',
 ];
+
+const customModel = process.env.GEMINI_MODEL;
+const GEMINI_MODELS = customModel ? [customModel, ...defaultModels] : defaultModels;
 
 export async function POST(request: Request) {
   try {
