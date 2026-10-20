@@ -230,7 +230,7 @@ Retorne OBRIGATORIAMENTE um objeto JSON válido no seguinte formato:
       if (is403) {
         return NextResponse.json(
           {
-            error: `A API do Google recusou a chave (Erro 403: ${detailedGoogleError || 'Permissão negada'}). A chave configurada (${apiKey.substring(0, 6)}...) não possui permissão para gerar conteúdo no Gemini. Crie uma chave gratuita no Google AI Studio (https://aistudio.google.com/app/apikey) e cole no .env e na Vercel (chaves do AI Studio começam com 'AIzaSy...').`,
+            error: `A API do Google recusou a chave (Erro 403: ${detailedGoogleError || 'Permissão negada'}). Verifique se a chave de API está ativa no Google AI Studio e configurada na Vercel / .env.`,
           },
           { status: 403 }
         );
