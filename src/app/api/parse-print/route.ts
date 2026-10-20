@@ -11,15 +11,69 @@ const VALID_LITURGICAL_PARTS = [
   'COMUNHAO', 'ACAO_DE_GRACAS', 'CANTO_FINAL', 'ESPECIAL',
 ] as const;
 
-const defaultModels = [
-  'gemini-3.8-flash',
-  'gemini-3-flash',
-  'gemini-2.5-flash',
-  'gemini-1.5-flash',
-];
+/**
+ * Dynamically queries Google Gemini ListModels API to identify
+ * which models are available and active for this specific API key.
+ */
+async function getAvailableGeminiTargets(apiKey: string): Promise<{ apiVersion: string; model: string }[]> {
+  const customModel = process.env.GEMINI_MODEL;
+  if (customModel) {
+    return [
+      { apiVersion: 'v1beta', model: customModel },
+      { apiVersion: 'v1', model: customModel },
+    ];
+  }
 
-const customModel = process.env.GEMINI_MODEL;
-const GEMINI_MODELS = customModel ? [customModel, ...defaultModels] : defaultModels;
+  const versions = ['v1beta', 'v1'];
+  const targets: { apiVersion: string; model: string }[] = [];
+
+  for (const ver of versions) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/${ver}/models?key=${apiKey}`, {
+        headers: { 'x-goog-api-key': apiKey },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.models)) {
+          const valid = data.models
+            .filter((m: any) =>
+              Array.isArray(m.supportedGenerationMethods) &&
+              m.supportedGenerationMethods.includes('generateContent')
+            )
+            .map((m: any) => ({
+              apiVersion: ver,
+              model: m.name.replace(/^models\//, ''),
+            }));
+
+          // Sort prioritizing flash models, then other gemini models
+          valid.sort((a, b) => {
+            const aFlash = a.model.toLowerCase().includes('flash') ? -1 : 1;
+            const bFlash = b.model.toLowerCase().includes('flash') ? -1 : 1;
+            return aFlash - bFlash;
+          });
+
+          if (valid.length > 0) {
+            targets.push(...valid);
+            break;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[parse-print] Erro ao listar modelos em ${ver}:`, err);
+    }
+  }
+
+  // Fallbacks if ListModels is restricted
+  if (targets.length === 0) {
+    const list = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+    for (const m of list) {
+      targets.push({ apiVersion: 'v1beta', model: m });
+      targets.push({ apiVersion: 'v1', model: m });
+    }
+  }
+
+  return targets;
+}
 
 export async function POST(request: Request) {
   try {
@@ -110,13 +164,13 @@ Retorne OBRIGATORIAMENTE um objeto JSON válido no seguinte formato:
   ]
 }`;
 
-    let lastError = '';
+    const targets = await getAvailableGeminiTargets(apiKey);
+    const attemptedErrors: string[] = [];
     let responseData: any = null;
 
-    // Try candidate Gemini models
-    for (const model of GEMINI_MODELS) {
+    for (const target of targets) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/${target.apiVersion}/models/${target.model}:generateContent?key=${apiKey}`;
         const res = await fetch(url, {
           method: 'POST',
           headers: {
@@ -142,8 +196,8 @@ Retorne OBRIGATORIAMENTE um objeto JSON válido no seguinte formato:
 
         if (!res.ok) {
           const errBody = await res.text();
-          lastError = `Modelo ${model} retornou ${res.status}: ${errBody}`;
-          console.warn(`[parse-print] ${lastError}`);
+          attemptedErrors.push(`${target.model} (${target.apiVersion}): ${res.status}`);
+          console.warn(`[parse-print] Modelo ${target.model} retornou ${res.status}: ${errBody}`);
           continue; // Try next model
         }
 
@@ -154,14 +208,14 @@ Retorne OBRIGATORIAMENTE um objeto JSON válido no seguinte formato:
           break; // Success!
         }
       } catch (e: any) {
-        lastError = e.message || String(e);
-        console.warn(`[parse-print] Erro ao chamar ${model}:`, e);
+        attemptedErrors.push(`${target.model}: ${e.message || String(e)}`);
+        console.warn(`[parse-print] Erro ao chamar ${target.model}:`, e);
       }
     }
 
     if (!responseData) {
       return NextResponse.json(
-        { error: `Não foi possível processar a imagem com a IA. Detalhes: ${lastError || 'Nenhuma resposta retornada'}` },
+        { error: `Não foi possível processar a imagem com os modelos disponíveis. Detalhes: ${attemptedErrors.join(', ')}` },
         { status: 502 }
       );
     }
