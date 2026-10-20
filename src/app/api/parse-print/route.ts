@@ -46,11 +46,16 @@ async function getAvailableGeminiTargets(apiKey: string): Promise<{ apiVersion: 
             }));
 
           // Sort prioritizing flash models, then other gemini models
-          valid.sort((a, b) => {
-            const aFlash = a.model.toLowerCase().includes('flash') ? -1 : 1;
-            const bFlash = b.model.toLowerCase().includes('flash') ? -1 : 1;
-            return aFlash - bFlash;
-          });
+          valid.sort(
+            (
+              a: { apiVersion: string; model: string },
+              b: { apiVersion: string; model: string }
+            ) => {
+              const aFlash = a.model.toLowerCase().includes('flash') ? -1 : 1;
+              const bFlash = b.model.toLowerCase().includes('flash') ? -1 : 1;
+              return aFlash - bFlash;
+            }
+          );
 
           if (valid.length > 0) {
             targets.push(...valid);
