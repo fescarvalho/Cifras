@@ -171,6 +171,7 @@ Retorne OBRIGATORIAMENTE um objeto JSON válido no seguinte formato:
 
     const targets = await getAvailableGeminiTargets(apiKey);
     const attemptedErrors: string[] = [];
+    let detailedGoogleError = '';
     let responseData: any = null;
 
     for (const target of targets) {
@@ -201,8 +202,15 @@ Retorne OBRIGATORIAMENTE um objeto JSON válido no seguinte formato:
 
         if (!res.ok) {
           const errBody = await res.text();
-          attemptedErrors.push(`${target.model} (${target.apiVersion}): ${res.status}`);
-          console.warn(`[parse-print] Modelo ${target.model} retornou ${res.status}: ${errBody}`);
+          if (!detailedGoogleError) {
+            try {
+              const parsed = JSON.parse(errBody);
+              detailedGoogleError = parsed.error?.message || errBody;
+            } catch {
+              detailedGoogleError = errBody;
+            }
+          }
+          attemptedErrors.push(`${target.model}: ${res.status}`);
           continue; // Try next model
         }
 
@@ -214,13 +222,22 @@ Retorne OBRIGATORIAMENTE um objeto JSON válido no seguinte formato:
         }
       } catch (e: any) {
         attemptedErrors.push(`${target.model}: ${e.message || String(e)}`);
-        console.warn(`[parse-print] Erro ao chamar ${target.model}:`, e);
       }
     }
 
     if (!responseData) {
+      const is403 = attemptedErrors.some((e) => e.includes('403'));
+      if (is403) {
+        return NextResponse.json(
+          {
+            error: `A API do Google recusou a chave (Erro 403: ${detailedGoogleError || 'Permissão negada'}). A chave configurada (${apiKey.substring(0, 6)}...) não possui permissão para gerar conteúdo no Gemini. Crie uma chave gratuita no Google AI Studio (https://aistudio.google.com/app/apikey) e cole no .env e na Vercel (chaves do AI Studio começam com 'AIzaSy...').`,
+          },
+          { status: 403 }
+        );
+      }
+
       return NextResponse.json(
-        { error: `Não foi possível processar a imagem com os modelos disponíveis. Detalhes: ${attemptedErrors.join(', ')}` },
+        { error: `Não foi possível processar a imagem. Detalhes: ${detailedGoogleError || attemptedErrors.join(', ')}` },
         { status: 502 }
       );
     }
