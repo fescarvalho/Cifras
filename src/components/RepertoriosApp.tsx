@@ -263,6 +263,8 @@ export default function RepertoriosApp({ initialSetlists }: RepertoriosAppProps)
         isOpen={showActionSheet}
         onClose={() => setShowActionSheet(false)}
         onNewManual={() => setShowCreateSetlist(true)}
+        onNewPrint={() => router.push("/repertorios/importar?type=print")}
+        onNewPdf={() => router.push("/repertorios/importar?type=pdf")}
         mode="setlist"
       />
     </div>

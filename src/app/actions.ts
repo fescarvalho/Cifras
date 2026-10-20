@@ -416,3 +416,46 @@ export async function saveMassFromImport(data: {
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Saves imported songs directly to the song library without creating a setlist.
+ */
+export async function saveSongsOnlyFromImport(songs: {
+  title: string;
+  artist?: string;
+  content: string;
+  part: LiturgicalPart;
+  referenceUrl?: string | null;
+  key?: string;
+  season?: LiturgicalSeason | null;
+}[]) {
+  try {
+    const session = await getAuthSession();
+    const createdSongs = await prisma.$transaction(async (tx) => {
+      const results = [];
+      for (let i = 0; i < songs.length; i++) {
+        const s = songs[i];
+        const newSong = await tx.song.create({
+          data: {
+            title: s.title || `Música ${i + 1}`,
+            artist: s.artist || "Desconhecido",
+            originalKey: s.key || "C",
+            content: s.content,
+            part: s.part,
+            season: s.season || null,
+            referenceUrl: s.referenceUrl || null,
+            userId: session.user.id,
+          },
+        });
+        results.push(newSong);
+      }
+      return results;
+    });
+
+    revalidatePath("/");
+    return { success: true, songs: createdSongs };
+  } catch (error: any) {
+    console.error("Failed to save songs from import:", error);
+    return { success: false, error: error.message };
+  }
+}

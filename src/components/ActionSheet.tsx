@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { Music, FileText, ListMusic, X } from "lucide-react";
+import { Music, FileText, ListMusic, X, Image as ImageIcon } from "lucide-react";
 
 interface ActionSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onNewManual: () => void;
   onNewPdf?: () => void;
+  onNewPrint?: () => void;
   mode?: "song" | "setlist";
 }
 
-export default function ActionSheet({ isOpen, onClose, onNewManual, onNewPdf, mode = "song" }: ActionSheetProps) {
+export default function ActionSheet({ isOpen, onClose, onNewManual, onNewPdf, onNewPrint, mode = "song" }: ActionSheetProps) {
   const [show, setShow] = useState(isOpen);
 
   useEffect(() => {
@@ -73,7 +74,30 @@ export default function ActionSheet({ isOpen, onClose, onNewManual, onNewPdf, mo
             </div>
           </button>
 
-          {mode === "song" && onNewPdf && (
+          {onNewPrint && (
+            <button
+              onClick={() => {
+                onClose();
+                onNewPrint();
+              }}
+              className="flex items-center gap-4 w-full p-4 text-left active:bg-slate-100 dark:active:bg-slate-800/50 rounded-xl transition-all active:scale-[0.98]"
+            >
+              <div className="bg-sky-100 dark:bg-sky-900/40 p-3 rounded-full text-sky-600 dark:text-sky-400">
+                <ImageIcon size={24} />
+              </div>
+              <div>
+                <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <span>Importar via Print / Foto</span>
+                  <span className="text-[10px] bg-sky-100 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300 font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                    IA
+                  </span>
+                </div>
+                <div className="text-sm text-slate-500 dark:text-slate-400">Extrair cifra de captura de tela ou foto</div>
+              </div>
+            </button>
+          )}
+
+          {onNewPdf && (
             <button
               onClick={() => {
                 onClose();

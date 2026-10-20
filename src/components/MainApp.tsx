@@ -409,7 +409,8 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
         isOpen={showActionSheet}
         onClose={() => setShowActionSheet(false)}
         onNewManual={() => setShowCreateSong(true)}
-        onNewPdf={() => router.push("/repertorios/importar")}
+        onNewPrint={() => router.push("/repertorios/importar?type=print")}
+        onNewPdf={() => router.push("/repertorios/importar?type=pdf")}
       />
     </div>
   );

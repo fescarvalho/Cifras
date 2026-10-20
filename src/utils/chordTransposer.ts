@@ -53,6 +53,8 @@ export function sanitizePdfText(text: string): string {
   );
 }
 
+export const sanitizeSongText = sanitizePdfText;
+
 /**
  * Checks if a single string token is a valid chord or structural chord-line token.
  */

@@ -19,7 +19,7 @@ export default function ImportPage() {
             </Link>
             <div>
               <h1 className="text-lg md:text-xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                Importar PDF
+                Importar Cifras (PDF ou Print)
               </h1>
             </div>
           </div>
@@ -27,7 +27,9 @@ export default function ImportPage() {
       </header>
 
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-8">
-        <PdfImport />
+        <React.Suspense fallback={<div className="p-8 text-center text-slate-400">Carregando importador...</div>}>
+          <PdfImport />
+        </React.Suspense>
       </main>
     </div>
   );
