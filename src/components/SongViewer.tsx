@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useCallback } from "react";
+import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { motion, PanInfo } from "framer-motion";
 import { Song, Setlist } from "@/generated/prisma/client";
 import { transposeLine, getPreferredScale, isChordLine, sanitizePdfText, getSemitoneDifference, getTransposedKey } from "@/utils/chordTransposer";
 import { PART_LABELS, PART_COLORS, SEASON_LABELS } from "@/utils/labels";
@@ -19,6 +20,8 @@ interface SongViewerProps {
   fontSize?: number;
   initialKey?: string | null;
   onChangeKey?: (newKey: string) => void;
+  onNextSong?: () => void;
+  onPrevSong?: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -181,19 +184,13 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 // ─────────────────────────────────────────────────────────────────────────────
 // Main SongViewer
 // ─────────────────────────────────────────────────────────────────────────────
-export default function SongViewer({ song, setlists = [], onClose, showBackButton = false, performanceMode = false, semitones: externalSemitones, fontSize: externalFontSize, initialKey, onChangeKey }: SongViewerProps) {
+export default function SongViewer({ song, setlists = [], onClose, showBackButton = false, performanceMode = false, semitones: externalSemitones, fontSize: externalFontSize, initialKey, onChangeKey, onNextSong, onPrevSong }: SongViewerProps) {
   // Wake Lock for Repertoire view and Cipher display
   useScreenWakeLock();
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [internalCurrentKey, setInternalCurrentKey] = useState<string>(initialKey || song.originalKey || "C");
   const [internalFontSize, setInternalFontSize] = useState(16);
-
-  // Sync with external initialKey if it changes (e.g. from Performance Mode footer)
-  React.useEffect(() => {
-    if (initialKey) {
-      setInternalCurrentKey(initialKey);
-    }
-  }, [initialKey]);
 
   const currentKey = internalCurrentKey;
   const setFontSize = setInternalFontSize;
@@ -226,18 +223,94 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   const onChangeKeyRef = useRef(onChangeKey);
   const lastFiredKey = useRef<string | null>(initialKey || null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     onChangeKeyRef.current = onChangeKey;
   }, [onChangeKey]);
 
+  // Sync with external initialKey if it changes (e.g. from Performance Mode footer or Supabase Realtime Maestro)
+  useEffect(() => {
+    if (initialKey) {
+      lastFiredKey.current = initialKey;
+      setInternalCurrentKey(initialKey);
+    }
+  }, [initialKey]);
+
+  // Reset scroll to top when switching songs in Play Mode
+  useEffect(() => {
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [song.id]);
+
+  // 1. Suporte a Pedais Bluetooth (Page-Turners)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isEditing) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === "ArrowDown" || e.key === "PageDown" || e.key === " ") {
+        e.preventDefault();
+        const step = window.innerHeight * 0.8;
+        window.scrollBy({ top: step, behavior: "smooth" });
+        scrollContainerRef.current?.scrollBy({ top: step, behavior: "smooth" });
+      } else if (e.key === "ArrowUp" || e.key === "PageUp") {
+        e.preventDefault();
+        const step = -(window.innerHeight * 0.8);
+        window.scrollBy({ top: step, behavior: "smooth" });
+        scrollContainerRef.current?.scrollBy({ top: step, behavior: "smooth" });
+      } else if (e.key === "ArrowRight") {
+        if (onNextSong) {
+          e.preventDefault();
+          onNextSong();
+        }
+      } else if (e.key === "ArrowLeft") {
+        if (onPrevSong) {
+          e.preventDefault();
+          onPrevSong();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isEditing, onNextSong, onPrevSong]);
+
+  // 3. Gestos Fluídos de Navegação (Framer Motion - Swipe Left/Right)
+  const handleSwipeDragEnd = useCallback(
+    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      const SWIPE_OFFSET_THRESHOLD = 65;
+      const SWIPE_VELOCITY_THRESHOLD = 400;
+
+      if (
+        info.offset.x < -SWIPE_OFFSET_THRESHOLD ||
+        info.velocity.x < -SWIPE_VELOCITY_THRESHOLD
+      ) {
+        onNextSong?.();
+      } else if (
+        info.offset.x > SWIPE_OFFSET_THRESHOLD ||
+        info.velocity.x > SWIPE_VELOCITY_THRESHOLD
+      ) {
+        onPrevSong?.();
+      }
+    },
+    [onNextSong, onPrevSong]
+  );
+
   // Hook to notify parent component when currentKey changes via UI interactions, with Debounce
-  React.useEffect(() => {
+  useEffect(() => {
     const handler = setTimeout(() => {
       if (onChangeKeyRef.current && currentKey && currentKey !== lastFiredKey.current) {
         lastFiredKey.current = currentKey;
         onChangeKeyRef.current(currentKey);
       }
-    }, 500); // 500ms debounce
+    }, 300);
     return () => clearTimeout(handler);
   }, [currentKey]);
 
@@ -278,7 +351,14 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   };
 
   const handleTranspose = (direction: -1 | 1) => {
-    setInternalCurrentKey(prev => getTransposedKey(prev, direction, preferredScale));
+    setInternalCurrentKey((prev) => {
+      const nextKey = getTransposedKey(prev, direction, preferredScale);
+      if (onChangeKeyRef.current && nextKey !== lastFiredKey.current) {
+        lastFiredKey.current = nextKey;
+        onChangeKeyRef.current(nextKey);
+      }
+      return nextKey;
+    });
   };
 
   const renderedLines = useMemo(() => {
@@ -454,10 +534,19 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   // ── Performance mode: just the chord sheet, no chrome ──
   if (performanceMode) {
     return (
-      <div className="flex-1 overflow-y-auto px-3 py-2">
-        <div
+      <div ref={scrollContainerRef} className="flex-1 h-full overflow-y-auto px-3 py-2">
+        <motion.div
+          key={song.id}
+          initial={{ opacity: 0, x: 24 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -24 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.18}
+          onDragEnd={handleSwipeDragEnd}
           className="w-full font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto"
-          style={{ fontSize: `${fontSize}px` }}
+          style={{ fontSize: `${fontSize}px`, touchAction: "pan-y" }}
         >
           {renderedLines.map((line) => {
             if (line.type === "empty") return <div key={line.key} className="h-3" />;
@@ -481,7 +570,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
               </div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -707,7 +796,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
       </div>
 
       {/* ── Main content area ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 md:py-10">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-6 md:py-10">
 
         {isEditing ? (
           /* ── Edit Mode ── */
@@ -775,9 +864,18 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
           </div>
         ) : (
           /* ── Read-only rendered view ── */
-          <div
+          <motion.div
+            key={song.id}
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -24 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            drag={onNextSong || onPrevSong ? "x" : false}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.18}
+            onDragEnd={handleSwipeDragEnd}
             className="max-w-4xl w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 md:p-10 shadow-sm font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto"
-            style={{ fontSize: `${fontSize}px` }}
+            style={{ fontSize: `${fontSize}px`, touchAction: "pan-y" }}
           >
             {renderedLines.map((line) => {
               if (line.type === "empty") return <div key={line.key} className="h-4" />;
@@ -810,7 +908,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                 </div>
               );
             })}
-          </div>
+          </motion.div>
         )}
       </div>
     </div>

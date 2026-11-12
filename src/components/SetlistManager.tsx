@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { AnimatePresence } from "framer-motion";
 import { Setlist, Song } from "@/generated/prisma/client";
 import { getSetlistWithSongs, removeSongFromSetlist, updateSetlistOrder, createSong, addSongToSetlist, updateSetlistSongKey } from "@/app/actions";
 import { PART_LABELS, PART_COLORS } from "@/utils/labels";
@@ -10,6 +11,7 @@ import { db } from "@/lib/db-local";
 import { useOfflineSync } from "./OfflineSyncManager";
 import { Share2, Check, CloudDownload, Loader2 } from "lucide-react";
 import { useScreenWakeLock } from "@/hooks/useScreenWakeLock";
+import { getSupabaseClient } from "@/lib/supabase";
 
 interface SetlistManagerProps {
   setlistId: string;
@@ -47,6 +49,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
   const [downloadedAt, setDownloadedAt] = useState<Date | null>(null);
 
   const { isOnline } = useOfflineSync();
+  const realtimeChannelRef = useRef<any>(null);
 
   const loadSetlistDetails = async () => {
     setLoading(true);
@@ -80,6 +83,68 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
     loadSetlistDetails();
   }, [setlistId]);
 
+  // 2. Modo "Maestro" (Supabase Realtime) — subscrição silenciosa para sincronização de tom
+  useEffect(() => {
+    if (!setlistId || !isOnline) return;
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    let channel: any = null;
+    try {
+      channel = supabase.channel(`setlist-${setlistId}`, {
+        config: {
+          broadcast: { self: false },
+        },
+      });
+
+      channel
+        .on("broadcast", { event: "key-change" }, ({ payload }: any) => {
+          if (!payload || !payload.songId || !payload.targetKey) return;
+          const { songId, targetKey } = payload;
+
+          // Atualiza o estado local imediatamente para todos os músicos conectados
+          setSongs((prev) =>
+            prev.map((s) => (s.songId === songId ? { ...s, selectedKey: targetKey } : s))
+          );
+
+          setSelectedSetlistSong((prev) =>
+            prev && prev.songId === songId ? { ...prev, selectedKey: targetKey } : prev
+          );
+
+          // Persiste silenciosamente no banco offline local (Dexie)
+          db.setlists
+            .get(setlistId)
+            .then((localSetlist) => {
+              if (localSetlist) {
+                localSetlist.songs = localSetlist.songs.map((s: any) =>
+                  s.songId === songId ? { ...s, selectedKey: targetKey } : s
+                );
+                return db.setlists.put(localSetlist);
+              }
+            })
+            .catch(() => {});
+        })
+        .subscribe(() => {
+          // Tratamento silencioso caso o tablet esteja offline ou sem rede estável
+        });
+
+      realtimeChannelRef.current = channel;
+    } catch {
+      // Silencioso em modo offline
+    }
+
+    return () => {
+      try {
+        if (channel) {
+          supabase.removeChannel(channel).catch(() => {});
+        }
+        realtimeChannelRef.current = null;
+      } catch {
+        // Silencioso no cleanup offline
+      }
+    };
+  }, [setlistId, isOnline]);
+
   const handleKeyChange = async (songId: string, newKey: string | null) => {
     // 1. Optimistic UI update
     setSongs(prev => prev.map(s => s.songId === songId ? { ...s, selectedKey: newKey } : s));
@@ -88,7 +153,22 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
       setSelectedSetlistSong(prev => prev ? { ...prev, selectedKey: newKey } : prev);
     }
 
-    // 2. Local DB update
+    // 2. Broadcast em tempo real (Modo "Maestro" - Supabase Realtime)
+    if (newKey && isOnline && realtimeChannelRef.current) {
+      try {
+        realtimeChannelRef.current
+          .send({
+            type: "broadcast",
+            event: "key-change",
+            payload: { songId, targetKey: newKey },
+          })
+          .catch(() => {});
+      } catch {
+        // Ignora silenciosamente caso o dispositivo esteja offline
+      }
+    }
+
+    // 3. Local DB update
     if (setlist) {
       const localSetlist = await db.setlists.get(setlistId);
       if (localSetlist) {
@@ -99,7 +179,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
       }
     }
 
-    // 3. Online/Offline Sync
+    // 4. Online/Offline Sync
     if (isOnline && !setlistId.startsWith('temp_')) {
       try {
         const res = await updateSetlistSongKey(setlistId, songId, newKey);
@@ -117,6 +197,30 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
       });
     }
   };
+
+  const handleNextPerformanceSong = useCallback(() => {
+    setActivePerformanceSongIdx((prev) => Math.min(songs.length - 1, prev + 1));
+  }, [songs.length]);
+
+  const handlePrevPerformanceSong = useCallback(() => {
+    setActivePerformanceSongIdx((prev) => Math.max(0, prev - 1));
+  }, []);
+
+  const handleNextModalSong = useCallback(() => {
+    if (!selectedSetlistSong || songs.length === 0) return;
+    const currentIndex = songs.findIndex((s) => s.songId === selectedSetlistSong.songId);
+    if (currentIndex >= 0 && currentIndex < songs.length - 1) {
+      setSelectedSetlistSong(songs[currentIndex + 1]);
+    }
+  }, [selectedSetlistSong, songs]);
+
+  const handlePrevModalSong = useCallback(() => {
+    if (!selectedSetlistSong || songs.length === 0) return;
+    const currentIndex = songs.findIndex((s) => s.songId === selectedSetlistSong.songId);
+    if (currentIndex > 0) {
+      setSelectedSetlistSong(songs[currentIndex - 1]);
+    }
+  }, [selectedSetlistSong, songs]);
 
   const handlePerfTranspose = (direction: number) => {
     if (songs.length === 0) return;
@@ -397,20 +501,26 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
         </div>
 
         {/* Chords Sheet Area — fullscreen, no SongViewer chrome */}
-        <div className="flex-1 overflow-y-auto">
-          <SongViewer
-            song={currentSong}
-            performanceMode
-            initialKey={currentSetlistSong.selectedKey || currentSong.originalKey}
-            fontSize={perfFontSize}
-          />
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <AnimatePresence mode="wait">
+            <SongViewer
+              key={currentSong.id}
+              song={currentSong}
+              performanceMode
+              initialKey={currentSetlistSong.selectedKey || currentSong.originalKey}
+              onChangeKey={(newKey) => handleKeyChange(currentSetlistSong.songId, newKey)}
+              fontSize={perfFontSize}
+              onNextSong={handleNextPerformanceSong}
+              onPrevSong={handlePrevPerformanceSong}
+            />
+          </AnimatePresence>
         </div>
 
         {/* Footer — compact controls + navigation */}
         <div className="bg-slate-900 border-t border-slate-800 px-2 py-2 flex items-center justify-between gap-1">
           {/* Anterior */}
           <button
-            onClick={() => setActivePerformanceSongIdx(prev => Math.max(0, prev - 1))}
+            onClick={handlePrevPerformanceSong}
             disabled={activePerformanceSongIdx === 0}
             className="flex items-center justify-center gap-1 bg-slate-800 active:bg-slate-700 disabled:opacity-30 text-white font-bold py-2 px-3 min-h-[44px] rounded-lg transition-all select-none text-sm active:scale-95"
           >
@@ -463,7 +573,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
 
           {/* Próxima */}
           <button
-            onClick={() => setActivePerformanceSongIdx(prev => Math.min(songs.length - 1, prev + 1))}
+            onClick={handleNextPerformanceSong}
             disabled={activePerformanceSongIdx === songs.length - 1}
             className="flex items-center justify-center gap-1 bg-slate-800 active:bg-slate-700 disabled:opacity-30 text-white font-bold py-2 px-3 min-h-[44px] rounded-lg transition-all select-none text-sm active:scale-95"
           >
@@ -668,16 +778,21 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
       {/* Song Viewer Fullscreen Overlay Modal */}
       {selectedSetlistSong && (
         <div className="fixed inset-0 z-50 bg-slate-50 dark:bg-slate-950">
-          <SongViewer
-            song={selectedSetlistSong.song}
-            initialKey={selectedSetlistSong.selectedKey || selectedSetlistSong.song.originalKey}
-            onChangeKey={(newKey) => handleKeyChange(selectedSetlistSong.songId, newKey)}
-            onClose={() => {
-              setSelectedSetlistSong(null);
-              loadSetlistDetails();
-            }}
-            showBackButton={true}
-          />
+          <AnimatePresence mode="wait">
+            <SongViewer
+              key={selectedSetlistSong.song.id}
+              song={selectedSetlistSong.song}
+              initialKey={selectedSetlistSong.selectedKey || selectedSetlistSong.song.originalKey}
+              onChangeKey={(newKey) => handleKeyChange(selectedSetlistSong.songId, newKey)}
+              onNextSong={handleNextModalSong}
+              onPrevSong={handlePrevModalSong}
+              onClose={() => {
+                setSelectedSetlistSong(null);
+                loadSetlistDetails();
+              }}
+              showBackButton={true}
+            />
+          </AnimatePresence>
         </div>
       )}
     </div>

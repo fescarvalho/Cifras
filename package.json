@@ -13,6 +13,7 @@
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@serwist/next": "^9.5.11",
+    "@supabase/supabase-js": "^2.119.0",
     "better-sqlite3": "^12.11.1",
     "dexie": "^4.4.4",
     "dexie-react-hooks": "^4.4.0",
