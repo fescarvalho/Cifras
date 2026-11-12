@@ -3,6 +3,7 @@
 import React from "react";
 import { LiturgicalPart, LiturgicalSeason } from "@/generated/prisma/client";
 import { PART_LABELS, SEASON_LABELS } from "@/utils/labels";
+import { Search, X, Sparkles } from "lucide-react";
 
 interface SongFiltersProps {
   search: string;
@@ -21,62 +22,101 @@ export default function SongFilters({
   selectedSeason,
   setSelectedSeason,
 }: SongFiltersProps) {
+  const partEntries = Object.entries(PART_LABELS) as [LiturgicalPart, string][];
+  const seasonEntries = Object.entries(SEASON_LABELS) as [LiturgicalSeason, string][];
+
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-sm flex flex-col gap-4">
-      {/* Search Input */}
-      <div className="relative">
-        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+    <div className="flex flex-col gap-3">
+      {/* Search Bar */}
+      <div className="relative group">
+        <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-violet-600 dark:group-focus-within:text-violet-400 transition-colors">
+          <Search className="w-4 h-4" />
         </span>
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Pesquisar por título ou artista..."
-          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-950 dark:text-slate-50 placeholder-slate-400 transition-all"
+          placeholder="Buscar música, cantor ou ministério..."
+          className="w-full bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-2xl py-3 pl-11 pr-10 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-violet-500/80 focus:border-violet-500 text-slate-950 dark:text-slate-50 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
         />
+        {search && (
+          <button
+            type="button"
+            onClick={() => setSearch("")}
+            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            aria-label="Limpar busca"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Liturgical Part Filter */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pl-1">
-            Momento da Missa
-          </label>
-          <select
-            value={selectedPart}
-            onChange={(e) => setSelectedPart(e.target.value as any)}
-            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-950 dark:text-slate-50 transition-all cursor-pointer"
-          >
-            <option value="ALL">Todos os Momentos</option>
-            {Object.entries(PART_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Horizontal Swipeable Chips: Momento Litúrgico */}
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 py-0.5">
+        <button
+          type="button"
+          onClick={() => setSelectedPart("ALL")}
+          className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 cursor-pointer ${
+            selectedPart === "ALL"
+              ? "bg-violet-600 text-white shadow-sm shadow-violet-500/25"
+              : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-800 hover:border-violet-300 dark:hover:border-slate-700"
+          }`}
+        >
+          Todos
+        </button>
+        {partEntries.map(([value, label]) => {
+          const active = selectedPart === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setSelectedPart(active ? "ALL" : value)}
+              className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 cursor-pointer ${
+                active
+                  ? "bg-violet-600 text-white shadow-sm shadow-violet-500/25"
+                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-800 hover:border-violet-300 dark:hover:border-slate-700"
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Liturgical Season Filter */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pl-1">
-            Tempo Litúrgico
-          </label>
-          <select
-            value={selectedSeason}
-            onChange={(e) => setSelectedSeason(e.target.value as any)}
-            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-950 dark:text-slate-50 transition-all cursor-pointer"
-          >
-            <option value="ALL">Todos os Tempos</option>
-            {Object.entries(SEASON_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Horizontal Swipeable Chips: Tempo Litúrgico */}
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+        <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 pr-1 shrink-0">
+          <Sparkles className="w-3 h-3 text-violet-500" />
+          Tempo:
+        </span>
+        <button
+          type="button"
+          onClick={() => setSelectedSeason("ALL")}
+          className={`shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all active:scale-95 cursor-pointer ${
+            selectedSeason === "ALL"
+              ? "bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900"
+              : "bg-slate-100/90 dark:bg-slate-900/70 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+        >
+          Qualquer
+        </button>
+        {seasonEntries.map(([value, label]) => {
+          const active = selectedSeason === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setSelectedSeason(active ? "ALL" : value)}
+              className={`shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all active:scale-95 cursor-pointer ${
+                active
+                  ? "bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "bg-slate-100/90 dark:bg-slate-900/70 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

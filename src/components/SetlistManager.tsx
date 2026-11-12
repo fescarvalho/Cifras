@@ -470,33 +470,39 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
 
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-slate-950 text-slate-100">
-        {/* Performance Top Bar — compact */}
-        <div className="bg-slate-900 border-b border-slate-800 px-2 py-1.5 flex items-center gap-2">
+        {/* Performance Top Bar — sleek glassmorphic pill bar */}
+        <div className="backdrop-blur-xl bg-slate-900/90 border-b border-slate-800/80 px-2.5 py-2 flex items-center gap-2">
           <button
             onClick={() => setIsPerformanceMode(false)}
-            className="bg-slate-800 active:bg-slate-700 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-slate-200 shrink-0 active:scale-95 transition-all"
+            className="bg-slate-800/90 active:bg-slate-700 p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl text-slate-300 shrink-0 active:scale-95 transition-all border border-slate-700/60"
             title="Sair do Modo de Execução"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
 
-          {/* Quick select buttons — fill remaining space */}
-          <div className="flex-1 flex items-center gap-1 overflow-x-auto p-0.5 bg-slate-950 rounded-lg min-w-0">
-            {songs.map((s, idx) => (
-              <button
-                key={s.id}
-                onClick={() => setActivePerformanceSongIdx(idx)}
-                className={`text-[10px] font-semibold px-2 py-1.5 rounded-md transition-all whitespace-nowrap shrink-0 ${
-                  idx === activePerformanceSongIdx
-                    ? "bg-violet-600 text-white font-bold"
-                    : "bg-slate-900 text-slate-400 active:bg-slate-850"
-                } min-h-[44px] flex items-center`}
-              >
-                {idx + 1}. {PART_LABELS[s.song.part as keyof typeof PART_LABELS]}
-              </button>
-            ))}
+          {/* Quick select buttons — horizontal swipeable pills */}
+          <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-w-0">
+            {songs.map((s, idx) => {
+              const active = idx === activePerformanceSongIdx;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setActivePerformanceSongIdx(idx)}
+                  className={`text-xs font-bold px-3 py-2 rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 min-h-[40px] ${
+                    active
+                      ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-600/30"
+                      : "bg-slate-800/70 text-slate-400 border border-slate-800 active:bg-slate-800"
+                  }`}
+                >
+                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${active ? "bg-white/20 text-white" : "bg-slate-900 text-slate-500"}`}>
+                    {idx + 1}
+                  </span>
+                  <span>{PART_LABELS[s.song.part as keyof typeof PART_LABELS]}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -516,55 +522,58 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
           </AnimatePresence>
         </div>
 
-        {/* Footer — compact controls + navigation */}
-        <div className="bg-slate-900 border-t border-slate-800 px-2 py-2 flex items-center justify-between gap-1">
+        {/* Footer — sleek floating-style control dock */}
+        <div className="backdrop-blur-xl bg-slate-900/95 border-t border-slate-800/80 px-3 py-2.5 pb-safe flex items-center justify-between gap-2">
           {/* Anterior */}
           <button
             onClick={handlePrevPerformanceSong}
             disabled={activePerformanceSongIdx === 0}
-            className="flex items-center justify-center gap-1 bg-slate-800 active:bg-slate-700 disabled:opacity-30 text-white font-bold py-2 px-3 min-h-[44px] rounded-lg transition-all select-none text-sm active:scale-95"
+            className="flex items-center justify-center gap-1.5 bg-slate-800/90 border border-slate-700/60 active:bg-slate-700 disabled:opacity-30 text-white font-bold py-2 px-3.5 min-h-[42px] rounded-xl transition-all select-none text-xs sm:text-sm active:scale-95"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M15 19l-7-7 7-7" />
             </svg>
             <span className="hidden sm:inline">Anterior</span>
           </button>
 
-          {/* Center: transpose + font */}
-          <div className="flex items-center gap-1">
+          {/* Center: transpose + font pill */}
+          <div className="flex items-center gap-1.5 bg-slate-950/90 border border-slate-800 p-1 rounded-2xl">
             {/* Transpose */}
             <button
               onClick={() => handlePerfTranspose(-1)}
-              className="bg-slate-800 active:bg-slate-700 text-white font-bold min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md text-sm transition-all active:scale-95"
+              className="bg-slate-800/90 active:bg-slate-700 text-white font-bold min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl text-sm transition-all active:scale-95"
               title="Transpor -1 Tom"
             >
               −
             </button>
-            <span className="text-[12px] font-mono font-bold text-orange-400 min-w-[32px] text-center">
-              {currentSetlistSong.selectedKey || currentSetlistSong.song.originalKey || "Tom"}
-            </span>
+            <div className="flex flex-col items-center justify-center min-w-[38px] px-1">
+              <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500 leading-none">Tom</span>
+              <span className="text-xs font-mono font-extrabold text-orange-400 leading-tight">
+                {currentSetlistSong.selectedKey || currentSetlistSong.song.originalKey || "C"}
+              </span>
+            </div>
             <button
               onClick={() => handlePerfTranspose(1)}
-              className="bg-slate-800 active:bg-slate-700 text-white font-bold min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md text-sm transition-all active:scale-95"
+              className="bg-slate-800/90 active:bg-slate-700 text-white font-bold min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl text-sm transition-all active:scale-95"
               title="Transpor +1 Tom"
             >
               +
             </button>
 
-            <div className="w-px h-5 bg-slate-700 mx-1" />
+            <div className="w-px h-5 bg-slate-800 mx-0.5" />
 
             {/* Font size */}
             <button
               onClick={() => setPerfFontSize(f => Math.max(8, f - 1))}
-              className="bg-slate-800 active:bg-slate-700 text-white font-bold min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md text-xs transition-all active:scale-95"
+              className="bg-slate-800/90 active:bg-slate-700 text-slate-200 font-bold min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl text-xs transition-all active:scale-95"
               title="Diminuir fonte"
             >
               A−
             </button>
-            <span className="text-[12px] font-mono font-bold text-slate-400 min-w-[28px] text-center">{perfFontSize}</span>
+            <span className="text-[11px] font-mono font-bold text-slate-400 min-w-[24px] text-center">{perfFontSize}</span>
             <button
               onClick={() => setPerfFontSize(f => Math.min(28, f + 1))}
-              className="bg-slate-800 active:bg-slate-700 text-white font-bold min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md text-xs transition-all active:scale-95"
+              className="bg-slate-800/90 active:bg-slate-700 text-slate-200 font-bold min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl text-xs transition-all active:scale-95"
               title="Aumentar fonte"
             >
               A+
@@ -575,11 +584,11 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
           <button
             onClick={handleNextPerformanceSong}
             disabled={activePerformanceSongIdx === songs.length - 1}
-            className="flex items-center justify-center gap-1 bg-slate-800 active:bg-slate-700 disabled:opacity-30 text-white font-bold py-2 px-3 min-h-[44px] rounded-lg transition-all select-none text-sm active:scale-95"
+            className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 active:from-violet-700 active:to-indigo-700 disabled:opacity-30 text-white font-bold py-2 px-3.5 min-h-[42px] rounded-xl transition-all select-none text-xs sm:text-sm active:scale-95 shadow-md shadow-violet-600/20"
           >
             <span className="hidden sm:inline">Próxima</span>
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
         </div>
@@ -588,74 +597,68 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-4 md:p-6 flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800/80">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-950 dark:text-slate-50">{setlist.title}</h2>
-          <p className="text-xs text-slate-500 mt-1" suppressHydrationWarning>
-            Data: {new Date(setlist.date).toLocaleDateString("pt-BR", { dateStyle: "long" })}
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap justify-end">
-          <button
-            onClick={handleShare}
-            className="relative overflow-hidden backdrop-blur-md bg-gradient-to-br from-amber-400/20 to-orange-500/10 dark:from-amber-500/20 dark:to-orange-600/10 border border-amber-400/40 dark:border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs md:text-sm font-bold py-2 px-3 md:px-4 min-h-[44px] rounded-xl flex items-center gap-1.5 transition-all duration-300 shadow-[0_4px_16px_rgba(245,158,11,0.15)] dark:shadow-[0_4px_16px_rgba(251,191,36,0.1)] hover:shadow-[0_4px_20px_rgba(245,158,11,0.25)] dark:hover:shadow-[0_4px_20px_rgba(251,191,36,0.2)] active:scale-95 hover:bg-amber-400/30 dark:hover:bg-amber-500/30 hover:border-amber-500/50 dark:hover:border-amber-400/50"
-            title="Compartilhar Repertório"
-          >
-            {shareFeedback ? <Check size={18} /> : <Share2 size={18} />}
-            <span className="hidden sm:inline">
-              {shareFeedback ? "Link Copiado!" : "Compartilhar"}
-            </span>
-          </button>
-          
-          {/* Download Setlist */}
-          {isDownloadingSetlist ? (
-             <div className="flex items-center text-xs md:text-sm px-3 py-1.5 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 min-h-[44px]">
-               <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-               <span className="hidden sm:inline font-medium">Salvando...</span>
-             </div>
-          ) : downloadedAt ? (
-             <button
-                disabled={!isOnline}
-                onClick={handleDownloadSetlist}
-                className="flex items-center text-xs md:text-sm px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 min-h-[44px] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Missa salva para uso offline!"
-             >
-                <Check className="w-4 h-4 mr-1.5" />
-                <span className="hidden sm:inline font-medium">Salvo Offline</span>
-             </button>
-          ) : (
-             <button
-                disabled={!isOnline}
-                onClick={handleDownloadSetlist}
-                className="flex items-center text-xs md:text-sm px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 min-h-[44px] active:scale-95 transition-all shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={isOnline ? "Salvar Missa Offline" : "Conecte-se para salvar"}
-             >
-                <CloudDownload className="w-4 h-4 mr-1.5 text-violet-500" />
-                <span className="hidden sm:inline font-semibold">Salvar Missa</span>
-             </button>
-          )}
-
+    <div className="bg-slate-50/50 dark:bg-slate-900/60 p-4 md:p-6 flex flex-col gap-5">
+      {/* Action Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-slate-200/70 dark:border-slate-800/80">
+        <div className="flex items-center gap-2 flex-wrap">
           {songs.length > 0 && (
             <button
               onClick={() => {
                 setActivePerformanceSongIdx(0);
                 setIsPerformanceMode(true);
               }}
-              className="bg-violet-600 active:bg-violet-700 text-white text-xs md:text-sm font-semibold py-2 px-4 min-h-[44px] rounded-xl flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+              className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs md:text-sm font-bold py-2.5 px-4 min-h-[42px] rounded-xl flex items-center gap-2 transition-all shadow-md shadow-violet-500/25 active:scale-95"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
               </svg>
-              Tocar Missa
+              <span>Tocar Missa</span>
             </button>
           )}
+
+          {/* Download Setlist */}
+          {isDownloadingSetlist ? (
+            <div className="flex items-center text-xs px-3 py-2 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 min-h-[42px]">
+              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              <span className="font-semibold">Salvando...</span>
+            </div>
+          ) : downloadedAt ? (
+            <button
+              disabled={!isOnline}
+              onClick={handleDownloadSetlist}
+              className="flex items-center text-xs px-3 py-2 rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 min-h-[42px] active:scale-95 transition-all disabled:opacity-50"
+              title="Missa salva para uso offline!"
+            >
+              <Check className="w-4 h-4 mr-1.5" />
+              <span className="font-semibold">Salvo Offline</span>
+            </button>
+          ) : (
+            <button
+              disabled={!isOnline}
+              onClick={handleDownloadSetlist}
+              className="flex items-center text-xs px-3 py-2 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 min-h-[42px] active:scale-95 transition-all shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
+              title={isOnline ? "Salvar Missa Offline" : "Conecte-se para salvar"}
+            >
+              <CloudDownload className="w-4 h-4 mr-1.5 text-violet-500" />
+              <span className="font-semibold">Salvar Offline</span>
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleShare}
+            className="backdrop-blur-md bg-amber-500/10 dark:bg-amber-500/15 border border-amber-400/40 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-bold py-2 px-3.5 min-h-[42px] rounded-xl flex items-center gap-1.5 transition-all active:scale-95"
+            title="Compartilhar Repertório"
+          >
+            {shareFeedback ? <Check size={16} /> : <Share2 size={16} />}
+            <span>{shareFeedback ? "Copiado!" : "Compartilhar"}</span>
+          </button>
+
           {onClose && (
             <button
               onClick={onClose}
-              className="border border-slate-200 dark:border-slate-800 active:bg-slate-50 dark:active:bg-slate-850 text-slate-600 dark:text-slate-400 py-2 px-3 min-h-[44px] rounded-xl transition-all active:scale-95"
+              className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold py-2 px-3 min-h-[42px] rounded-xl transition-all active:scale-95"
             >
               Fechar
             </button>
@@ -665,100 +668,108 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
 
       {/* Song list in setlist */}
       {songs.length === 0 ? (
-        <div className="text-center p-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl mb-4">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+        <div className="text-center p-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-white/50 dark:bg-slate-950/40">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
             {readOnly 
               ? "Nenhuma música neste repertório." 
               : "Nenhuma música neste repertório ainda. Adicione abaixo!"}
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2 mb-6">
-          <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 pl-1">
-            Sequência de Músicas
+        <div className="flex flex-col gap-2.5">
+          <h3 className="text-[11px] uppercase font-extrabold tracking-wider text-slate-400 dark:text-slate-500 pl-1">
+            Sequência Litúrgica ({songs.length})
           </h3>
-          <div className="flex flex-col gap-3">
-            {songs.map((s, index) => (
-              <div
-                key={s.id}
-                className="group flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850/80 rounded-xl transition-all active:scale-[0.98] active:bg-slate-100 dark:active:bg-slate-900 gap-3 sm:gap-0"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 w-5">
-                    {index + 1}
-                  </span>
-                  <div
-                    onClick={() => setSelectedSetlistSong(s)}
-                    className="min-w-0 cursor-pointer group/title"
-                    title="Clique para ver a cifra"
-                  >
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate active:text-violet-600 dark:active:text-violet-400">
-                      {s.song.title}
-                    </h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{s.song.artist}</p>
+          <div className="flex flex-col gap-2.5">
+            {songs.map((s, index) => {
+              const displayKey = s.selectedKey || s.song.originalKey;
+              return (
+                <div
+                  key={s.id}
+                  onClick={() => setSelectedSetlistSong(s)}
+                  className="group flex items-center justify-between p-3 bg-white dark:bg-slate-950/90 border border-slate-200/80 dark:border-slate-800/80 hover:border-violet-300 dark:hover:border-violet-700/70 rounded-2xl transition-all cursor-pointer active:scale-[0.99] shadow-[0_1px_6px_rgba(0,0,0,0.02)] gap-2.5"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <span className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 flex items-center justify-center shrink-0">
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                          {s.song.title}
+                        </h4>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${PART_COLORS[s.song.part as keyof typeof PART_COLORS]}`}>
+                          {PART_LABELS[s.song.part as keyof typeof PART_LABELS]}
+                        </span>
+                        {displayKey && (
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 border border-violet-200/60 dark:border-violet-800/50">
+                            Tom: {displayKey}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${PART_COLORS[s.song.part as keyof typeof PART_COLORS]}`}>
-                    {PART_LABELS[s.song.part as keyof typeof PART_LABELS]}
-                  </span>
 
                   {!readOnly && (
-                    <div className="flex items-center gap-1 sm:border-l border-slate-200 dark:border-slate-800/80 sm:pl-3">
+                    <div
+                      className="flex items-center gap-0.5 shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
                         onClick={() => handleMove(index, "up")}
                         disabled={index === 0}
-                        className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 active:bg-slate-200 dark:active:bg-slate-800 disabled:opacity-20 rounded-md transition-all active:scale-95"
+                        className="min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800 disabled:opacity-20 rounded-xl transition-all active:scale-95"
                         title="Mover para cima"
                       >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 15l7-7 7 7" />
                         </svg>
                       </button>
                       <button
                         onClick={() => handleMove(index, "down")}
                         disabled={index === songs.length - 1}
-                        className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 active:bg-slate-200 dark:active:bg-slate-800 disabled:opacity-20 rounded-md transition-all active:scale-95"
+                        className="min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800 disabled:opacity-20 rounded-xl transition-all active:scale-95"
                         title="Mover para baixo"
                       >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
                       <button
                         onClick={() => handleRemove(s.songId)}
-                        className="min-w-[44px] min-h-[44px] flex items-center justify-center text-rose-500 active:bg-rose-100 dark:active:bg-rose-950/40 rounded-md transition-all active:scale-95"
+                        className="min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-400 hover:text-rose-500 active:text-rose-600 active:bg-rose-50 dark:active:bg-rose-950/40 rounded-xl transition-all active:scale-95"
                         title="Remover"
                       >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
                     </div>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
       {/* Formulário de Adição Rápida */}
       {!readOnly && (
-        <form onSubmit={handleQuickAdd} className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl p-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-auto">
+        <form onSubmit={handleQuickAdd} className="bg-white dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
           <input 
             type="text" 
-            placeholder="Nome da música (Adição rápida)" 
+            placeholder="Adicionar música rápida..." 
             value={quickTitle}
             onChange={(e) => setQuickTitle(e.target.value)}
-            className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-900 dark:text-slate-100"
+            className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl py-2.5 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-slate-900 dark:text-slate-100"
           />
           <div className="flex items-center gap-2">
             <select
               value={quickPart}
               onChange={(e) => setQuickPart(e.target.value)}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-900 dark:text-slate-100"
+              className="flex-1 sm:flex-initial bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-slate-900 dark:text-slate-100"
             >
               {Object.entries(PART_LABELS).map(([key, label]) => (
                 <option key={key} value={key}>{label}</option>
@@ -767,9 +778,9 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
             <button
               type="submit"
               disabled={isQuickAdding || !quickTitle.trim()}
-              className="min-h-[44px] bg-violet-600 active:bg-violet-700 disabled:opacity-50 text-white font-semibold py-2.5 px-4 rounded-lg text-sm transition-all active:scale-95 shadow-sm whitespace-nowrap"
+              className="min-h-[40px] bg-violet-600 active:bg-violet-700 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-xl text-xs sm:text-sm transition-all active:scale-95 shadow-sm whitespace-nowrap"
             >
-              {isQuickAdding ? "Adicionando..." : "Adicionar"}
+              {isQuickAdding ? "..." : "+ Adicionar"}
             </button>
           </div>
         </form>

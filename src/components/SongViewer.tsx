@@ -579,203 +579,210 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
 
       {/* ── Sticky top control bar ── */}
-      <div className="sticky top-0 z-20 backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="sticky top-0 z-20 backdrop-blur-xl bg-white/85 dark:bg-slate-900/85 border-b border-slate-200/80 dark:border-slate-800/80 px-3 py-2.5 md:px-6 md:py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+        <div className="max-w-4xl mx-auto flex flex-col gap-2.5">
 
-          {/* Left: back + title */}
-          <div className="flex items-center gap-3">
-            {showBackButton && onClose && (
-              <button
-                onClick={onClose}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 active:bg-slate-100 dark:active:bg-slate-800 rounded-full transition-all active:scale-95"
-                title="Voltar"
-              >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-            )}
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold tracking-tight">{song.title}</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{song.artist}</p>
-            </div>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${PART_COLORS[song.part]} ml-2`}>
-              {PART_LABELS[song.part]}
-            </span>
-            {/* Original Key Editor Badge */}
-            {isEditingOriginalKey ? (
-              <div className="flex items-center gap-1 ml-2">
-                <select
-                  value={song.originalKey || "C"}
-                  onChange={(e) => handleOriginalKeyChange(e.target.value)}
-                  disabled={isUpdatingOriginalKey}
-                  className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded py-0.5 px-2 text-xs focus:outline-none"
-                >
-                  <option disabled value="">Tom real da cifra</option>
-                  {['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'].map(k => (
-                    <option key={k} value={k}>{k}</option>
-                  ))}
-                </select>
+          {/* Top Row: Back + Title/Artist + Quick Actions (YouTube / Edit) */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              {showBackButton && onClose && (
                 <button
-                  onClick={() => setIsEditingOriginalKey(false)}
-                  className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 px-1"
+                  onClick={onClose}
+                  className="min-w-[40px] min-h-[40px] flex items-center justify-center p-2 bg-slate-100/80 dark:bg-slate-800/80 active:bg-slate-200 dark:active:bg-slate-700 rounded-xl transition-all active:scale-95 shrink-0 text-slate-700 dark:text-slate-200"
+                  title="Voltar"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M15 19l-7-7 7-7" />
+                  </svg>
                 </button>
-                {isUpdatingOriginalKey && <span className="text-[10px] text-slate-500">...</span>}
-              </div>
-            ) : (
-              <div className="flex items-center gap-1 ml-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5">
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Tom Original: {song.originalKey}
-                </span>
-                {!isEditing && (
-                  <button
-                    onClick={() => setIsEditingOriginalKey(true)}
-                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                    title="Corrigir Tom Original"
-                  >
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            )}
-            {song.referenceUrl && (
-              <a
-                href={song.referenceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 min-h-[44px] px-3 py-1 text-xs font-semibold rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 active:bg-red-100 dark:active:bg-red-900/40 transition-all active:scale-95 ml-1"
-                title="Abrir referência no YouTube"
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>
-                YouTube
-              </a>
-            )}
-          </div>
+              )}
 
-          {/* Right: controls */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Edit / Save / Cancel buttons */}
-            {!isEditing ? (
-              <button
-                onClick={() => { 
-                  setEditContent(song.content); 
-                  setEditTitle(song.title);
-                  setEditArtist(song.artist);
-                  setEditPart(song.part);
-                  setEditSeason(song.season || "ALL");
-                  setEditReferenceUrl(song.referenceUrl || "");
-                  setIsEditing(true); 
-                }}
-                className="flex items-center gap-1.5 min-h-[44px] px-3 py-1.5 text-sm font-semibold border border-slate-300 dark:border-slate-600 active:bg-slate-100 dark:active:bg-slate-800 rounded-lg transition-all active:scale-95"
-                title="Editar música"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <span className="hidden sm:inline">Editar</span>
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={handleCancelEdit}
-                  className="min-h-[44px] px-3 py-1.5 text-sm font-semibold border border-slate-300 dark:border-slate-600 active:bg-slate-100 dark:active:bg-slate-800 rounded-lg transition-all active:scale-95"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={saveStatus === "saving"}
-                  className={`min-h-[44px] px-4 py-1.5 text-sm font-semibold rounded-lg transition-all active:scale-95 disabled:cursor-wait shadow-sm ${saveBtnClass[saveStatus]}`}
-                >
-                  {saveLabel[saveStatus]}
-                </button>
-              </>
-            )}
-
-            {/* Transpose — hidden in edit mode */}
-            {!isEditing && (
-              <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-                <button
-                  onClick={() => handleTranspose(-1)}
-                  className="min-h-[44px] min-w-[44px] flex items-center justify-center px-3 py-1.5 text-sm font-semibold active:bg-white dark:active:bg-slate-700 active:shadow-sm rounded-md transition-all active:scale-95"
-                  title="Transpor -1 Tom (-1 Bemol)"
-                >
-                  − Tom
-                </button>
-                <div className="px-4 py-1 text-xs md:text-sm font-mono font-bold text-center min-w-[70px]">
-                  {currentKey}
-                  {semitones !== 0 && (
-                    <span className="text-xs block text-orange-500">
-                      {semitones > 0 ? `+${semitones}` : semitones}
-                    </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base sm:text-lg md:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white truncate">
+                    {song.title}
+                  </h1>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${PART_COLORS[song.part]}`}>
+                    {PART_LABELS[song.part]}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{song.artist}</p>
+                  <span className="text-slate-300 dark:text-slate-700">•</span>
+                  {/* Original Key Editor Badge */}
+                  {isEditingOriginalKey ? (
+                    <div className="flex items-center gap-1">
+                      <select
+                        value={song.originalKey || "C"}
+                        onChange={(e) => handleOriginalKeyChange(e.target.value)}
+                        disabled={isUpdatingOriginalKey}
+                        className="bg-white dark:bg-slate-800 border border-violet-300 dark:border-violet-700 rounded-md py-0.5 px-1.5 text-[11px] font-mono font-bold focus:outline-none"
+                      >
+                        <option disabled value="">Tom real</option>
+                        {['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'].map(k => (
+                          <option key={k} value={k}>{k}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => setIsEditingOriginalKey(false)}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => !isEditing && setIsEditingOriginalKey(true)}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
+                      title="Corrigir Tom Original"
+                    >
+                      <span>Orig: <strong className="font-mono text-slate-700 dark:text-slate-300">{song.originalKey}</strong></span>
+                      {!isEditing && (
+                        <svg className="w-3 h-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      )}
+                    </button>
                   )}
                 </div>
-                <button
-                  onClick={() => handleTranspose(1)}
-                  className="min-h-[44px] min-w-[44px] flex items-center justify-center px-3 py-1.5 text-sm font-semibold active:bg-white dark:active:bg-slate-700 active:shadow-sm rounded-md transition-all active:scale-95"
-                  title="Transpor +1 Tom (+1 Sustenido)"
-                >
-                  + Tom
-                </button>
               </div>
-            )}
+            </div>
 
-            {/* Font size — hidden in edit mode */}
-            {!isEditing && (
-              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-                <button
-                  onClick={() => setFontSize((f) => Math.max(8, f - 2))}
-                  className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 active:bg-slate-50 dark:active:bg-slate-700 transition-all active:scale-95 shadow-sm"
-                  title="Diminuir fonte"
+            {/* Right: YouTube + Edit/Save */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {song.referenceUrl && !isEditing && (
+                <a
+                  href={song.referenceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 min-h-[38px] px-2.5 py-1.5 text-xs font-bold rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/80 dark:border-rose-800/60 active:scale-95 transition-all"
+                  title="Abrir referência no YouTube"
                 >
-                  <span className="text-xs font-bold font-sans">A−</span>
-                </button>
-                <span className="text-xs px-1 font-mono font-semibold">{fontSize}px</span>
-                <button
-                  onClick={() => setFontSize((f) => Math.min(28, f + 2))}
-                  className="min-h-[44px] min-w-[44px] flex items-center justify-center p-1.5 rounded-md active:bg-white dark:active:bg-slate-700 transition-all active:scale-95"
-                  title="Aumentar fonte"
-                >
-                  <span className="text-xs font-bold font-sans">A+</span>
-                </button>
-              </div>
-            )}
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>
+                  <span className="hidden sm:inline">YouTube</span>
+                </a>
+              )}
 
-            {/* Add to Setlist — hidden in edit mode */}
-            {!isEditing && setlists.length > 0 && (
-              <div className="flex items-center gap-2">
-                <select
-                  value={selectedSetlistId}
-                  onChange={(e) => setSelectedSetlistId(e.target.value)}
-                  className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg py-1.5 px-3 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-                >
-                  <option value="">Selecione a Missa...</option>
-                  {setlists.map((s) => (
-                    <option key={s.id} value={s.id}>{s.title}</option>
-                  ))}
-                </select>
+              {!isEditing ? (
                 <button
-                  onClick={handleAddToSetlist}
-                  disabled={!selectedSetlistId || isAdding}
-                  className="min-h-[44px] bg-violet-600 active:bg-violet-700 text-white font-semibold py-1.5 px-4 rounded-lg text-xs md:text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed active:shadow-md active:scale-95"
+                  onClick={() => { 
+                    setEditContent(song.content); 
+                    setEditTitle(song.title);
+                    setEditArtist(song.artist);
+                    setEditPart(song.part);
+                    setEditSeason(song.season || "ALL");
+                    setEditReferenceUrl(song.referenceUrl || "");
+                    setIsEditing(true); 
+                  }}
+                  className="flex items-center justify-center gap-1.5 min-h-[38px] px-3 py-1.5 text-xs font-bold border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 active:bg-slate-100 dark:active:bg-slate-700 rounded-xl transition-all active:scale-95 shadow-sm"
+                  title="Editar música"
                 >
-                  {isAdding ? "Adicionando..." : "Adicionar"}
+                  <svg className="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  <span className="hidden sm:inline">Editar</span>
                 </button>
-              </div>
-            )}
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleCancelEdit}
+                    className="min-h-[38px] px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl transition-all active:scale-95"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={saveStatus === "saving"}
+                    className={`min-h-[38px] px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all active:scale-95 disabled:cursor-wait shadow-sm ${saveBtnClass[saveStatus]}`}
+                  >
+                    {saveLabel[saveStatus]}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Second Row: Transpose + Font Size + Add to Setlist (hidden in edit mode) */}
+          {!isEditing && (
+            <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar pt-0.5">
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Transpose Pill */}
+                <div className="flex items-center bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/60 rounded-xl p-0.5">
+                  <button
+                    onClick={() => handleTranspose(-1)}
+                    className="min-h-[34px] min-w-[36px] flex items-center justify-center px-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 active:bg-white dark:active:bg-slate-700 rounded-lg transition-all active:scale-95"
+                    title="Transpor -1 Semitom"
+                  >
+                    −1
+                  </button>
+                  <div className="px-2.5 py-0.5 text-xs font-mono font-extrabold text-center min-w-[52px] flex items-center justify-center gap-1 text-violet-700 dark:text-violet-300">
+                    <span>{currentKey}</span>
+                    {semitones !== 0 && (
+                      <span className="text-[10px] font-bold text-orange-500">
+                        ({semitones > 0 ? `+${semitones}` : semitones})
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleTranspose(1)}
+                    className="min-h-[34px] min-w-[36px] flex items-center justify-center px-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 active:bg-white dark:active:bg-slate-700 rounded-lg transition-all active:scale-95"
+                    title="Transpor +1 Semitom"
+                  >
+                    +1
+                  </button>
+                </div>
+
+                {/* Font size Pill */}
+                <div className="flex items-center bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/60 rounded-xl p-0.5">
+                  <button
+                    onClick={() => setFontSize((f) => Math.max(8, f - 2))}
+                    className="min-h-[34px] min-w-[34px] flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 active:bg-white dark:active:bg-slate-700 transition-all active:scale-95"
+                    title="Diminuir fonte"
+                  >
+                    <span className="text-xs font-bold">A−</span>
+                  </button>
+                  <span className="text-[11px] px-1.5 font-mono font-bold text-slate-500 dark:text-slate-400">{fontSize}</span>
+                  <button
+                    onClick={() => setFontSize((f) => Math.min(28, f + 2))}
+                    className="min-h-[34px] min-w-[34px] flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 active:bg-white dark:active:bg-slate-700 transition-all active:scale-95"
+                    title="Aumentar fonte"
+                  >
+                    <span className="text-xs font-bold">A+</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Add to Setlist */}
+              {setlists.length > 0 && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <select
+                    value={selectedSetlistId}
+                    onChange={(e) => setSelectedSetlistId(e.target.value)}
+                    className="bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl py-1.5 px-2.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/50 max-w-[140px] sm:max-w-[180px]"
+                  >
+                    <option value="">+ Missa...</option>
+                    {setlists.map((s) => (
+                      <option key={s.id} value={s.id}>{s.title}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleAddToSetlist}
+                    disabled={!selectedSetlistId || isAdding}
+                    className="min-h-[34px] bg-violet-600 active:bg-violet-700 text-white font-bold py-1.5 px-3 rounded-xl text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 shadow-sm"
+                  >
+                    {isAdding ? "..." : "Incluir"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Feedback banner */}
         {message.text && (
           <div className="max-w-4xl mx-auto mt-2">
-            <div className={`p-2 rounded-md text-xs font-semibold text-center border ${
+            <div className={`p-2 rounded-xl text-xs font-semibold text-center border ${
               message.type === "success"
                 ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50"
                 : "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/50"
@@ -789,8 +796,8 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
         {isEditing && (
           <div className="max-w-4xl mx-auto mt-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <span className="inline-block w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-            Clique no editor abaixo e edite diretamente — acordes ficam em
-            <span className="text-orange-500 font-semibold">laranja</span> em tempo real.
+            Toque no editor abaixo para editar — acordes ficam em
+            <span className="text-orange-500 font-semibold">laranja</span> automaticamente.
           </div>
         )}
       </div>
