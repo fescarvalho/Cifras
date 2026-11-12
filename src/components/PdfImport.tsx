@@ -157,12 +157,13 @@ function ChordEditor({ value, onChange, minRows = 16 }: ChordEditorProps) {
         background: "#0f172a",          // slate-950
         // Focus ring handled via :focus-within below (can't do in inline style)
       }}
-      className="chord-editor-container"
+      className="chord-editor-container font-mono whitespace-pre-wrap"
     >
       {/* ── Highlight layer (sits behind textarea) ── */}
       <pre
         ref={preRef}
         aria-hidden="true"
+        className="font-mono whitespace-pre-wrap"
         style={{
           ...SHARED_STYLE,
           position: "absolute",
@@ -188,6 +189,7 @@ function ChordEditor({ value, onChange, minRows = 16 }: ChordEditorProps) {
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
+        className="font-mono whitespace-pre-wrap"
         style={{
           ...SHARED_STYLE,
           position: "absolute",
@@ -209,6 +211,7 @@ function ChordEditor({ value, onChange, minRows = 16 }: ChordEditorProps) {
       {/* Stretch the container to match content height */}
       <div
         aria-hidden="true"
+        className="font-mono whitespace-pre-wrap"
         style={{
           ...SHARED_STYLE,
           visibility: "hidden",

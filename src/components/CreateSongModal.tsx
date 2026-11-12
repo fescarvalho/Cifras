@@ -332,7 +332,7 @@ C  G/B  Am  F
 [Estrofe 1]
 C            G/B
 Senhor, meu Deus...`}
-              className="flex-1 w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-950 dark:text-slate-50 placeholder-slate-450 resize-none min-h-[200px]"
+              className="flex-1 w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm font-mono whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-950 dark:text-slate-50 placeholder-slate-450 resize-none min-h-[200px]"
               required
             />
           </div>

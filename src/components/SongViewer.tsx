@@ -97,6 +97,7 @@ function ChordEditor({ value, onChange }: { value: string; onChange: (v: string)
 
   return (
     <div
+      className="font-mono whitespace-pre-wrap"
       style={{
         position: "relative",
         borderRadius: "12px",
@@ -110,6 +111,7 @@ function ChordEditor({ value, onChange }: { value: string; onChange: (v: string)
       <pre
         ref={preRef}
         aria-hidden="true"
+        className="font-mono whitespace-pre-wrap"
         style={{
           ...EDITOR_FONT,
           position: "absolute",
@@ -135,6 +137,7 @@ function ChordEditor({ value, onChange }: { value: string; onChange: (v: string)
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
+        className="font-mono whitespace-pre-wrap"
         style={{
           ...EDITOR_FONT,
           position: "absolute",
@@ -156,6 +159,7 @@ function ChordEditor({ value, onChange }: { value: string; onChange: (v: string)
       {/* Ghost div to stretch the container height */}
       <div
         aria-hidden="true"
+        className="font-mono whitespace-pre-wrap"
         style={{
           ...EDITOR_FONT,
           visibility: "hidden",
@@ -452,14 +456,14 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
     return (
       <div className="flex-1 overflow-y-auto px-3 py-2">
         <div
-          className="w-full leading-relaxed overflow-x-auto"
+          className="w-full font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto"
           style={{ fontSize: `${fontSize}px` }}
         >
           {renderedLines.map((line) => {
             if (line.type === "empty") return <div key={line.key} className="h-3" />;
-            if (line.type === "section") {
+            if (line.type === "header") {
               return (
-                <div key={line.key} className="text-slate-400 font-bold uppercase text-[0.7em] tracking-wider pt-3 pb-1">
+                <div key={line.key} className="font-mono whitespace-pre-wrap text-slate-400 font-bold uppercase text-[0.7em] tracking-wider pt-3 pb-1">
                   {line.content}
                 </div>
               );
@@ -772,14 +776,14 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
         ) : (
           /* ── Read-only rendered view ── */
           <div
-            className="max-w-4xl w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 md:p-10 shadow-sm leading-relaxed overflow-x-auto"
+            className="max-w-4xl w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 md:p-10 shadow-sm font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto"
             style={{ fontSize: `${fontSize}px` }}
           >
             {renderedLines.map((line) => {
               if (line.type === "empty") return <div key={line.key} className="h-4" />;
               if (line.type === "header") {
                 return (
-                  <div key={line.key} className="font-sans font-bold text-slate-400 dark:text-slate-500 select-none border-b border-slate-100 dark:border-slate-800/80 pb-1 mt-6 mb-2 text-[0.85em] uppercase tracking-wider">
+                  <div key={line.key} className="font-mono whitespace-pre-wrap font-bold text-slate-400 dark:text-slate-500 select-none border-b border-slate-100 dark:border-slate-800/80 pb-1 mt-6 mb-2 text-[0.85em] uppercase tracking-wider">
                     {line.content}
                   </div>
                 );

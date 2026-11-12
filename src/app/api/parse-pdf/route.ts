@@ -24,7 +24,7 @@ function extractReferenceUrl(text: string): { referenceUrl: string; cleanedText:
       .split('\n')
       .filter((line) => !YOUTUBE_REGEX.test(line))
       .join('\n')
-      .trim();
+      .replace(/^\n+|\n+$/g, '');
     // Reset lastIndex since we used /g flag
     YOUTUBE_REGEX.lastIndex = 0;
     return { referenceUrl: ytMatch[0], cleanedText };
@@ -37,7 +37,7 @@ function extractReferenceUrl(text: string): { referenceUrl: string; cleanedText:
       .split('\n')
       .filter((line) => !GENERIC_URL_REGEX.test(line))
       .join('\n')
-      .trim();
+      .replace(/^\n+|\n+$/g, '');
     GENERIC_URL_REGEX.lastIndex = 0;
     return { referenceUrl: urlMatch[0], cleanedText };
   }
@@ -48,7 +48,7 @@ function extractReferenceUrl(text: string): { referenceUrl: string; cleanedText:
 /**
  * Extracts the title from a block of text.
  * Returns the first non-empty line (capped at 80 chars).
- * The remaining lines become the content body.
+ * The remaining lines become the content body without stripping horizontal spaces.
  */
 function splitTitleAndContent(block: string): { title: string; content: string } {
   const lines = block.split('\n');
@@ -56,16 +56,17 @@ function splitTitleAndContent(block: string): { title: string; content: string }
   let contentStartIdx = 0;
 
   for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trim();
-    if (trimmed.length > 0) {
-      titleLine = trimmed.length > 80 ? trimmed.substring(0, 80) + '…' : trimmed;
+    const nonSpaceChars = lines[i].replace(/ /g, '');
+    if (nonSpaceChars.length > 0) {
+      const cleanTitle = lines[i].replace(/^ +| +$/g, '');
+      titleLine = cleanTitle.length > 80 ? cleanTitle.substring(0, 80) + '…' : cleanTitle;
       contentStartIdx = i + 1;
       break;
     }
   }
 
-  const content = lines.slice(contentStartIdx).join('\n').trim();
-  return { title: titleLine || 'Música Sem Título', content: content || block.trim() };
+  const content = lines.slice(contentStartIdx).join('\n').replace(/^\n+|\n+$/g, '');
+  return { title: titleLine || 'Música Sem Título', content: content || block.replace(/^\n+|\n+$/g, '') };
 }
 
 export async function POST(request: Request) {
@@ -98,100 +99,93 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // ── 3. Extract text with pdf-parse v2 ──────────────────────────────────
+    // ── 3. Extract text with pdf-parse (custom pagerender with X/Y coordinates) ──
     require('pdf-parse/worker');
     const { PDFParse } = require('pdf-parse');
-    const parser = new PDFParse({ data: buffer, verbosity: -1 });
-    await parser.load();
 
-    const renderPage = async (pageData: any) => {
+    const pagerender = async (pageData: any) => {
       const render_options = {
         normalizeWhitespace: false,
-        disableCombineTextItems: true
+        disableCombineTextItems: false,
       };
-      
+
       const textContent = await pageData.getTextContent(render_options);
-      const lines: { y: number, items: any[] }[] = [];
-      
+      const lines: { y: number; items: any[] }[] = [];
+
       for (const item of textContent.items) {
-        // Skip empty string items
-        if (!item.str || item.str === '') continue;
-        
+        // Ignora itens vazios ou itens sintéticos de espaço em branco do PDF.js
+        // para que a distância X real entre acordes/palavras seja calculada pelas coordenadas
+        if (!item.str || item.str.replace(/ /g, '') === '') continue;
+
         const y = item.transform[5];
-        // Tolerance of 3 points for items on the same line
-        let line = lines.find(l => Math.abs(l.y - y) < 3);
+        // Agrupa por linha com base na coordenada vertical Y (tolerância de 3 pixels)
+        let line = lines.find((l) => Math.abs(l.y - y) <= 3);
         if (!line) {
-          line = { y: y, items: [] };
+          line = { y, items: [] };
           lines.push(line);
         }
         line.items.push(item);
       }
-      
-      // Sort lines top to bottom (PDF Y is usually 0 at bottom)
+
+      // Ordena as linhas de cima para baixo (no PDF o eixo Y cresce para cima)
       lines.sort((a, b) => b.y - a.y);
-      
+
+      // Calcula a margem esquerda base da página para preservar indentação inicial das linhas
+      const allX = lines.flatMap((l) => l.items.map((it) => it.transform[4]));
+      const baseLeftX = allX.length > 0 ? Math.min(...allX) : 0;
+
       let text = '';
-      
+
       for (const line of lines) {
-        // Sort items left to right
+        // Ordena os itens dentro da linha pela coordenada horizontal X (item.transform[4])
         line.items.sort((a, b) => a.transform[4] - b.transform[4]);
-        
+
         let lineText = '';
-        let currentX = 0;
-        
+        let anteriorFimX: number | null = null;
+
         for (const item of line.items) {
-          const itemX = item.transform[4];
-          const fontSize = item.transform[0] || 10;
-          // In a monospace font, every character (including space) is typically ~0.6 times the font size.
-          // By using 0.6, the number of spaces we generate perfectly matches the frontend monospace rendering.
-          const monospaceCharWidth = fontSize * 0.6;
-          const spaceWidth = Math.max(monospaceCharWidth, 6); 
-          
-          if (currentX > 0) {
-            const gap = itemX - currentX;
-            if (gap > spaceWidth) {
-              const numSpaces = Math.max(1, Math.round(gap / spaceWidth));
-              lineText += ' '.repeat(numSpaces);
+          const atualX = item.transform[4];
+
+          if (anteriorFimX === null) {
+            const recuoInicialX = atualX - baseLeftX;
+            if (recuoInicialX > 2.5) {
+              const qtdEspacos = Math.round(recuoInicialX / 5);
+              if (qtdEspacos > 0) {
+                lineText += ' '.repeat(qtdEspacos);
+              }
             }
           } else {
-            // Initial line indentation (assuming page margin is around 20-30 points)
-            if (itemX > 30) {
-              const numSpaces = Math.max(0, Math.round((itemX - 30) / spaceWidth));
-              lineText += ' '.repeat(numSpaces);
+            const distanciaX = atualX - anteriorFimX;
+            if (distanciaX > 1) {
+              const qtdEspacos = Math.max(1, Math.round(distanciaX / 5));
+              lineText += ' '.repeat(qtdEspacos);
             }
           }
-          let str = item.str;
-          const trueTextWidth = str.trimEnd().length * monospaceCharWidth;
-          
-          if (item.width && item.width > trueTextWidth + spaceWidth * 2 && str.includes(' ')) {
-            const extraWidth = item.width - trueTextWidth;
-            const extraSpaces = Math.max(0, Math.round(extraWidth / spaceWidth));
-            const spaceCount = str.match(/ /g)?.length || 1;
-            const spacesPerGap = Math.round(extraSpaces / spaceCount);
-            if (spacesPerGap > 0) {
-              str = str.replace(/ /g, ' '.repeat(1 + spacesPerGap));
-            }
-          }
-          
-          lineText += str;
-          
-          currentX = itemX + (str.trimEnd().length * monospaceCharWidth);
+
+          lineText += item.str;
+          const larguraItem = item.width && item.width > 0 ? item.width : item.str.length * 5;
+          anteriorFimX = atualX + larguraItem;
         }
-        text += lineText.trimEnd() + '\n';
+
+        text += lineText + '\n';
       }
-      
+
       return text;
     };
 
+    const options = { data: buffer, verbosity: -1, pagerender };
+    const parser = new PDFParse(options);
+    await parser.load();
+
     const doc = (parser as any).doc;
     if (!doc) throw new Error("Não foi possível ler o documento PDF");
-    
+
     let rawText = '';
     const numPages = doc.numPages;
     for (let i = 1; i <= numPages; i++) {
       const pageData = await doc.getPage(i);
       rawText += `\n--- PAGE ${i} ---\n`;
-      rawText += await renderPage(pageData);
+      rawText += await options.pagerender(pageData);
     }
 
     // We already built rawText in the loop above.
@@ -200,12 +194,12 @@ export async function POST(request: Request) {
     let rawSongs: string[] = [];
     if (mergePages) {
       // Remove the page markers entirely to make it one seamless text
-      rawSongs = [rawText.replace(/---\s*PAGE\s*\d+\s*---/gi, '\n').trim()];
+      rawSongs = [rawText.replace(/---\s*PAGE\s*\d+\s*---/gi, '\n').replace(/^\n+|\n+$/g, '')];
     } else {
       rawSongs = rawText
         .split(/---\s*PAGE\s*\d+\s*---/i)
-        .map((block) => block.trim())
-        .filter((block) => block.length > 20); // Ignore tiny/empty fragments
+        .map((block) => block.replace(/^\n+|\n+$/g, ''))
+        .filter((block) => block.replace(/\s/g, '').length > 20); // Ignore tiny/empty fragments
     }
 
     // ── 5. Structure each block ────────────────────────────────────────────
@@ -223,8 +217,8 @@ export async function POST(request: Request) {
     });
 
     // Fallback: if no split worked, return all text as one song
-    if (extractedSongs.length === 0 && rawText.trim().length > 0) {
-      const { referenceUrl, cleanedText } = extractReferenceUrl(rawText.trim());
+    if (extractedSongs.length === 0 && rawText.replace(/\s/g, '').length > 0) {
+      const { referenceUrl, cleanedText } = extractReferenceUrl(rawText.replace(/^\n+|\n+$/g, ''));
       const { title, content } = splitTitleAndContent(cleanedText);
       extractedSongs.push({
         id: 'temp-unica',
