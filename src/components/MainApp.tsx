@@ -10,6 +10,7 @@ import CreateSongModal from "./CreateSongModal";
 import CreateSetlistModal from "./CreateSetlistModal";
 import BottomNav from "./BottomNav";
 import ActionSheet from "./ActionSheet";
+import GuitarTuner from "./GuitarTuner";
 import { useRouter } from "next/navigation";
 import { PART_LABELS, PART_COLORS, SEASON_LABELS, SEASON_COLORS } from "@/utils/labels";
 import { getSongs, getSetlists, deleteSetlist, deleteSong } from "@/app/actions";
@@ -62,6 +63,7 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
   const [showCreateSong, setShowCreateSong] = useState(false);
   const [showCreateSetlist, setShowCreateSetlist] = useState(false);
   const [showActionSheet, setShowActionSheet] = useState(false);
+  const [showTuner, setShowTuner] = useState(false);
 
   // Theme state
   const [darkMode, setDarkMode] = useState(false);
@@ -225,6 +227,18 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
                 <span className="hidden sm:inline font-semibold">Baixar Offline</span>
               </button>
             )}
+            {/* Guitar Tuner Button */}
+            <button
+              onClick={() => setShowTuner(true)}
+              className="flex items-center justify-center gap-1.5 text-xs px-2.5 sm:px-3 py-2 rounded-xl border border-violet-200/80 dark:border-violet-800/60 bg-violet-50/80 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 min-h-[40px] min-w-[40px] active:scale-95 transition-all shadow-sm"
+              title="Abrir Afinador de Violão"
+            >
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+              </svg>
+              <span className="hidden sm:inline font-bold">Afinador</span>
+            </button>
+
             <button
               onClick={toggleTheme}
               className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-700 transition-all active:scale-95 shadow-sm"
@@ -417,6 +431,18 @@ export default function MainApp({ initialSongs, initialSetlists }: MainAppProps)
             refreshData();
           }}
         />
+      )}
+
+      {/* Guitar Tuner Modal */}
+      {showTuner && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowTuner(false)}
+        >
+          <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <GuitarTuner onClose={() => setShowTuner(false)} />
+          </div>
+        </div>
       )}
 
       <BottomNav onAddClick={() => {
