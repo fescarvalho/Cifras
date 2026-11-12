@@ -4,7 +4,7 @@ import React, { useState, useMemo, useRef, useCallback, useEffect } from "react"
 import { motion, PanInfo } from "framer-motion";
 import { Song, Setlist } from "@/generated/prisma/client";
 import { transposeLine, getPreferredScale, isChordLine, isChordToken, sanitizePdfText, getSemitoneDifference, getTransposedKey } from "@/utils/chordTransposer";
-import { calculateSmartCapo, formatCapo } from "@/utils/smartCapo";
+import { calculateSmartCapo } from "@/utils/smartCapo";
 import ChordPopover from "./ChordPopover";
 import { PART_LABELS, PART_COLORS, SEASON_LABELS } from "@/utils/labels";
 import { addSongToSetlist, updateSongContent } from "@/app/actions";
@@ -179,10 +179,9 @@ function ChordEditor({ value, onChange }: { value: string; onChange: (v: string)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Save status types
-// ─────────────────────────────────────────────────────────────────────────────
 // Interactive chord line — whitespace preserved verbatim; the enlarged hit-area
 // is an absolutely positioned pseudo-element (no padding/margin → alignment intact).
+// ─────────────────────────────────────────────────────────────────────────────
 type ChordTap = (chord: string, el: HTMLElement) => void;
 
 function InteractiveChords({ text, onChordTap }: { text: string; onChordTap: ChordTap }) {
@@ -404,22 +403,50 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
 
   const smartCapo = useMemo(() => calculateSmartCapo(currentKey), [currentKey]);
 
+  // Manual capo (per song, persisted locally). 0 = no capo.
+  const [capo, setCapo] = useState(0);
+  useEffect(() => {
+    try {
+      const saved = Number(localStorage.getItem(`capo:${song.id}`));
+      setCapo(Number.isInteger(saved) && saved >= 0 && saved <= 11 ? saved : 0);
+    } catch {
+      setCapo(0);
+    }
+  }, [song.id]);
+
+  const updateCapo = useCallback((next: number) => {
+    const value = Math.min(11, Math.max(0, next));
+    setCapo(value);
+    try { localStorage.setItem(`capo:${song.id}`, String(value)); } catch { /* offline/private mode */ }
+  }, [song.id]);
+
+  // Shape key shown on the sheet when capo is active
+  const capoShapeKey = useMemo(
+    () => (capo > 0 ? getTransposedKey(currentKey, -capo, preferredScale) : currentKey),
+    [currentKey, capo, preferredScale]
+  );
+
+  const popoverEl = chordPopover ? (
+    <ChordPopover
+      chord={chordPopover.chord}
+      capo={capo}
+      playAs={chordPopover.chord}
+      anchor={chordPopover.rect}
+      onClose={closeChordPopover}
+    />
+  ) : null;
+
   const renderedLines = useMemo(() => {
     const sanitized = sanitizePdfText(song.content ?? "");
+    // When capo > 0, transpose displayed chords down by `capo` semitones so the musician reads the exact shapes to finger
+    const effectiveSemitones = semitones - capo;
 
-    // Splits glued chords like "C#G#7" → "C#  G#7"
-    // Looks for a capital letter A-G that starts a new chord mid-token
     const splitGluedChords = (line: string): string => {
-      // Only try on lines that look like they could be chord lines (short, no lowercase words)
       const trimmed = line.trim();
       if (!trimmed || trimmed.length > 120) return line;
-      // If it already has spaces and is detected as a chord line, leave it
       if (isChordLine(line)) return line;
-      // Try splitting: insert space before uppercase A-G that follows a non-space character
-      // but only if the character before is a digit, #, b, m, or lowercase letter (chord suffix)
       const split = trimmed.replace(/([#b\dm\d)])([A-G](?:#|b)?(?:m|M|maj|min|dim|aug|sus|add)?)/g, '$1  $2');
       if (split !== trimmed && isChordLine(split)) {
-        // Preserve leading whitespace
         const leading = line.length - line.trimStart().length;
         return ' '.repeat(leading) + split;
       }
@@ -433,11 +460,11 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
       if (trimmed.startsWith("[") && trimmed.endsWith("]"))
         return { type: "header", content: trimmed, key: idx };
       if (isChordLine(line)) {
-        return { type: "chords", content: transposeLine(line, semitones, preferredScale), key: idx };
+        return { type: "chords", content: transposeLine(line, effectiveSemitones, preferredScale), key: idx };
       }
       return { type: "lyrics", content: rawLine, key: idx };
     });
-  }, [song.content, semitones, preferredScale]);
+  }, [song.content, semitones, capo, preferredScale]);
 
   const handleAddToSetlist = async () => {
     if (!selectedSetlistId) return;
@@ -447,7 +474,6 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
       if (isOnline && !selectedSetlistId.startsWith('temp_')) {
         const res = await addSongToSetlist(selectedSetlistId, song.id);
         if (res.success) {
-          // Update local DB so it shows up instantly without reloading
           const localSetlist = await db.setlists.get(selectedSetlistId);
           if (localSetlist) {
             const newOrder = localSetlist.songs.length > 0 ? Math.max(...localSetlist.songs.map(s => s.order)) + 1 : 1;
@@ -467,10 +493,8 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
           setMessage({ text: `Erro: ${res.error}`, type: "error" });
         }
       } else {
-        // Offline add to setlist
         const localSetlist = await db.setlists.get(selectedSetlistId);
         if (localSetlist) {
-          // Check if already in setlist
           if (localSetlist.songs.some(s => s.songId === song.id)) {
              setMessage({ text: "A música já está no repertório.", type: "error" });
              setIsAdding(false);
@@ -528,10 +552,8 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
       const res = await updateSongContent(song.id, dataToUpdate);
       if (res.success) {
         setSaveStatus("saved");
-        // Update local Dexie first for instant read feedback
         await db.songs.update(song.id, dataToUpdate as any);
 
-        // Patch the local song object so renderedLines and UI re-computes with new content
         song.content = editContent;
         song.title = editTitle;
         song.artist = editArtist;
@@ -574,20 +596,43 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
     error: "bg-rose-600 active:bg-rose-700 text-white",
   };
 
-  // ── Performance mode: just the chord sheet, no chrome ──
+  // ── Performance mode: just the chord sheet, with floating Capo bar ──
   if (performanceMode) {
     return (
       <div ref={scrollContainerRef} className="flex-1 h-full overflow-y-auto px-3 py-2">
-        {smartCapo && (
-          <div className="sticky top-0 z-10 flex justify-end pointer-events-none">
-            <span className="pointer-events-auto text-[11px] font-bold px-2.5 py-1 rounded-xl backdrop-blur-md bg-slate-900/70 text-amber-300 border border-white/10">
-              {formatCapo(smartCapo)}
-            </span>
+        <div className="sticky top-0 z-10 flex items-center justify-end gap-1.5 pointer-events-none">
+          {/* Capo selector in Performance Mode */}
+          <div className="pointer-events-auto flex items-center gap-1.5 px-2.5 py-1 rounded-xl backdrop-blur-md bg-slate-900/80 border border-white/10 text-xs">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Capo:</span>
+            <select
+              value={capo}
+              onChange={(e) => updateCapo(Number(e.target.value))}
+              className="bg-transparent text-amber-300 font-bold focus:outline-none cursor-pointer"
+            >
+              <option value={0} className="bg-slate-900 text-slate-200">Sem capo</option>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((c) => (
+                <option key={c} value={c} className="bg-slate-900 text-amber-300">
+                  {c}ª Casa ({getTransposedKey(currentKey, -c, preferredScale)})
+                </option>
+              ))}
+            </select>
           </div>
-        )}
-        {chordPopover && (
-          <ChordPopover chord={chordPopover.chord} anchor={chordPopover.rect} onClose={closeChordPopover} />
-        )}
+
+          {/* 1-click Smart Capo suggestion if different from active capo */}
+          {smartCapo && smartCapo.capo > 0 && capo !== smartCapo.capo && (
+            <button
+              type="button"
+              onClick={() => updateCapo(smartCapo.capo)}
+              className="pointer-events-auto text-[11px] font-bold px-2.5 py-1 rounded-xl backdrop-blur-md bg-amber-500/20 text-amber-300 border border-amber-400/30 active:scale-95 transition-all"
+              title="Aplicar capotraste sugerido"
+            >
+              💡 Usar {smartCapo.capo}ª ({smartCapo.shape})
+            </button>
+          )}
+        </div>
+
+        {popoverEl}
+
         <motion.div
           key={song.id}
           initial={{ opacity: 0, x: 24 }}
@@ -630,9 +675,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      {chordPopover && (
-        <ChordPopover chord={chordPopover.chord} anchor={chordPopover.rect} onClose={closeChordPopover} />
-      )}
+      {popoverEl}
 
       {/* ── Sticky top control bar ── */}
       <div className="sticky top-0 z-20 backdrop-blur-xl bg-white/85 dark:bg-slate-900/85 border-b border-slate-200/80 dark:border-slate-800/80 px-3 py-2.5 md:px-6 md:py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
@@ -759,7 +802,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             </div>
           </div>
 
-          {/* Second Row: Transpose + Font Size + Add to Setlist (hidden in edit mode) */}
+          {/* Second Row: Transpose + Capo Selector + Smart Capo + Font Size + Add to Setlist */}
           {!isEditing && (
             <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar pt-0.5">
               <div className="flex items-center gap-2 shrink-0">
@@ -789,14 +832,58 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                   </button>
                 </div>
 
-                {/* Smart Capo badge */}
-                {smartCapo && (
-                  <span
-                    className="shrink-0 whitespace-nowrap text-[11px] font-bold px-2.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800/50"
-                    title="Capotraste sugerido para usar shapes abertos (C, A, G, E, D)"
+                {/* Interactive Capo Selector Pill */}
+                <div
+                  className={`flex items-center gap-1 rounded-xl px-2.5 py-1 min-h-[36px] border transition-colors ${
+                    capo > 0
+                      ? "bg-amber-100/90 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200"
+                      : "bg-slate-100/90 dark:bg-slate-800/90 border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-300"
+                  }`}
+                  title="Selecionar casa do Capotraste (adapta os acordes da cifra automaticamente)"
+                >
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-75">Capo:</span>
+                  <select
+                    value={capo}
+                    onChange={(e) => updateCapo(Number(e.target.value))}
+                    className="bg-transparent text-xs font-bold focus:outline-none cursor-pointer pr-1"
                   >
-                    {formatCapo(smartCapo)}
-                  </span>
+                    <option value={0} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+                      Sem capo
+                    </option>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((c) => {
+                      const shapeKey = getTransposedKey(currentKey, -c, preferredScale);
+                      return (
+                        <option key={c} value={c} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+                          {c}ª Casa (Tocar em {shapeKey})
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {capo > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => updateCapo(0)}
+                      className="ml-0.5 text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-white p-0.5 rounded"
+                      title="Remover Capotraste"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
+                {/* Smart Capo 1-click suggestion button when not yet applied */}
+                {smartCapo && smartCapo.capo > 0 && capo !== smartCapo.capo && (
+                  <button
+                    type="button"
+                    onClick={() => updateCapo(smartCapo.capo)}
+                    className="shrink-0 whitespace-nowrap text-[11px] font-bold px-2.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 hover:bg-amber-100 dark:hover:bg-amber-900/50 active:scale-95 transition-all flex items-center gap-1"
+                    title="Clique para ativar o Capotraste sugerido e converter os acordes na tela"
+                  >
+                    <span>💡 Sugestão: Capo {smartCapo.capo}ª ({smartCapo.shape})</span>
+                    <span className="underline ml-0.5">Usar</span>
+                  </button>
                 )}
 
                 {/* Font size Pill */}
@@ -844,6 +931,24 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             </div>
           )}
         </div>
+
+        {/* Active Capo info banner */}
+        {!isEditing && capo > 0 && (
+          <div className="max-w-4xl mx-auto mt-2">
+            <div className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50/90 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800/50 flex items-center justify-between">
+              <span>
+                🎸 <strong>Capo na {capo}ª casa ativo:</strong> cifras na tela em <strong>{capoShapeKey}</strong> (som real: <strong>{currentKey}</strong>)
+              </span>
+              <button
+                type="button"
+                onClick={() => updateCapo(0)}
+                className="text-[11px] font-bold underline ml-2 hover:opacity-80"
+              >
+                Desativar
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Feedback banner */}
         {message.text && (
