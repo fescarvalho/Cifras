@@ -3,7 +3,9 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { motion, PanInfo } from "framer-motion";
 import { Song, Setlist } from "@/generated/prisma/client";
-import { transposeLine, getPreferredScale, isChordLine, sanitizePdfText, getSemitoneDifference, getTransposedKey } from "@/utils/chordTransposer";
+import { transposeLine, getPreferredScale, isChordLine, isChordToken, sanitizePdfText, getSemitoneDifference, getTransposedKey } from "@/utils/chordTransposer";
+import { calculateSmartCapo, formatCapo } from "@/utils/smartCapo";
+import ChordPopover from "./ChordPopover";
 import { PART_LABELS, PART_COLORS, SEASON_LABELS } from "@/utils/labels";
 import { addSongToSetlist, updateSongContent } from "@/app/actions";
 import { useOfflineSync } from "./OfflineSyncManager";
@@ -179,6 +181,39 @@ function ChordEditor({ value, onChange }: { value: string; onChange: (v: string)
 // ─────────────────────────────────────────────────────────────────────────────
 // Save status types
 // ─────────────────────────────────────────────────────────────────────────────
+// Interactive chord line — whitespace preserved verbatim; the enlarged hit-area
+// is an absolutely positioned pseudo-element (no padding/margin → alignment intact).
+type ChordTap = (chord: string, el: HTMLElement) => void;
+
+function InteractiveChords({ text, onChordTap }: { text: string; onChordTap: ChordTap }) {
+  return (
+    <>
+      {text.split(/(\s+)/).map((part, i) => {
+        if (!part || /^\s+$/.test(part) || !/^[A-G]/.test(part) || !isChordToken(part)) {
+          return <React.Fragment key={i}>{part}</React.Fragment>;
+        }
+        return (
+          <span
+            key={i}
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation();
+              onChordTap(part, e.currentTarget);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onChordTap(part, e.currentTarget);
+            }}
+            className="relative cursor-pointer rounded-sm active:bg-orange-500/25 after:content-[''] after:absolute after:-inset-x-0.5 after:-inset-y-2"
+          >
+            {part}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -212,6 +247,12 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   const [editSeason, setEditSeason] = useState(song.season || "ALL");
   const [editReferenceUrl, setEditReferenceUrl] = useState(song.referenceUrl || "");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+
+  const [chordPopover, setChordPopover] = useState<{ chord: string; rect: DOMRect } | null>(null);
+  const handleChordTap = useCallback<ChordTap>((chord, el) => {
+    setChordPopover({ chord, rect: el.getBoundingClientRect() });
+  }, []);
+  const closeChordPopover = useCallback(() => setChordPopover(null), []);
 
   const preferredScale = useMemo(() => getPreferredScale(song.content), [song.content]);
 
@@ -360,6 +401,8 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
       return nextKey;
     });
   };
+
+  const smartCapo = useMemo(() => calculateSmartCapo(currentKey), [currentKey]);
 
   const renderedLines = useMemo(() => {
     const sanitized = sanitizePdfText(song.content ?? "");
@@ -535,6 +578,16 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   if (performanceMode) {
     return (
       <div ref={scrollContainerRef} className="flex-1 h-full overflow-y-auto px-3 py-2">
+        {smartCapo && (
+          <div className="sticky top-0 z-10 flex justify-end pointer-events-none">
+            <span className="pointer-events-auto text-[11px] font-bold px-2.5 py-1 rounded-xl backdrop-blur-md bg-slate-900/70 text-amber-300 border border-white/10">
+              {formatCapo(smartCapo)}
+            </span>
+          </div>
+        )}
+        {chordPopover && (
+          <ChordPopover chord={chordPopover.chord} anchor={chordPopover.rect} onClose={closeChordPopover} />
+        )}
         <motion.div
           key={song.id}
           initial={{ opacity: 0, x: 24 }}
@@ -559,8 +612,8 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             }
             if (line.type === "chords") {
               return (
-                <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-0.5 pt-1.5">
-                  {line.content}
+                <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 whitespace-pre-wrap leading-none pb-0.5 pt-1.5">
+                  <InteractiveChords text={line.content} onChordTap={handleChordTap} />
                 </div>
               );
             }
@@ -577,6 +630,9 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      {chordPopover && (
+        <ChordPopover chord={chordPopover.chord} anchor={chordPopover.rect} onClose={closeChordPopover} />
+      )}
 
       {/* ── Sticky top control bar ── */}
       <div className="sticky top-0 z-20 backdrop-blur-xl bg-white/85 dark:bg-slate-900/85 border-b border-slate-200/80 dark:border-slate-800/80 px-3 py-2.5 md:px-6 md:py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
@@ -732,6 +788,16 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                     +1
                   </button>
                 </div>
+
+                {/* Smart Capo badge */}
+                {smartCapo && (
+                  <span
+                    className="shrink-0 whitespace-nowrap text-[11px] font-bold px-2.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800/50"
+                    title="Capotraste sugerido para usar shapes abertos (C, A, G, E, D)"
+                  >
+                    {formatCapo(smartCapo)}
+                  </span>
+                )}
 
                 {/* Font size Pill */}
                 <div className="flex items-center bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/60 rounded-xl p-0.5">
@@ -899,13 +965,15 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                   return (
                     <div key={line.key} className="font-mono tracking-normal whitespace-pre-wrap leading-none pb-1 pt-2">
                       <span className="text-slate-500 dark:text-slate-400 font-normal">{introMatch[1]}</span>
-                      <span className="font-bold text-orange-600 dark:text-orange-400">{introMatch[2]}</span>
+                      <span className="font-bold text-orange-600 dark:text-orange-400">
+                        <InteractiveChords text={introMatch[2]} onChordTap={handleChordTap} />
+                      </span>
                     </div>
                   );
                 }
                 return (
-                  <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 select-all whitespace-pre-wrap leading-none pb-1 pt-2">
-                    {line.content}
+                  <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 whitespace-pre-wrap leading-none pb-1 pt-2">
+                    <InteractiveChords text={line.content} onChordTap={handleChordTap} />
                   </div>
                 );
               }
