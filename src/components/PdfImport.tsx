@@ -60,7 +60,7 @@ function buildHighlightedHTML(text: string): React.ReactNode {
 
   return lines.map((line, i) => {
     const isLast = i === lines.length - 1;
-    const trimmed = line.trim();
+    const trimmed = line.replace(/[\u200B-\u200D\uFEFF\u2060]/g, "").trim();
 
     // Empty line — render a non-breaking space so the line keeps its height
     if (!trimmed) {
@@ -92,7 +92,9 @@ function buildHighlightedHTML(text: string): React.ReactNode {
 
     // Chord line → orange
     if (isChordLine(line)) {
-      const introMatch = line.match(/^(\s*(?:intro(?:du[cç][aã]o)?)[:.\-]*\s*)(.*)$/i);
+      const introMatch = line.match(
+        /^(\s*\[?(?:intro(?:du[cç][aã]o)?|final|solo|instrumental|interl[uú]dio|passagem|ponte|base)\]?[:.\-]*\s*)(.*)$/i
+      );
       if (introMatch) {
         return (
           <span key={i} style={{ display: "block" }}>
@@ -351,6 +353,8 @@ export default function PdfImport() {
   const [files, setFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [scrapeUrl, setScrapeUrl] = useState("");
+  const [isScrapingUrl, setIsScrapingUrl] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [songs, setSongs] = useState<ExtractedSong[]>([]);
@@ -486,6 +490,49 @@ export default function PdfImport() {
     }
   };
 
+  const handleImportUrl = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmedUrl = scrapeUrl.trim();
+    if (!trimmedUrl) {
+      setError("Cole um link válido do CifraClub para importar.");
+      return;
+    }
+
+    setIsScrapingUrl(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/scrape-cifra", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmedUrl }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Não foi possível importar a cifra deste link.");
+      }
+
+      const extractedSong: ExtractedSong = {
+        id: `url_${Date.now()}`,
+        title: data.title || "Música Importada",
+        artist: data.artist || "Desconhecido",
+        content: data.content,
+        part: "ENTRADA",
+        referenceUrl: "",
+        key: data.key || autoDetectKey(data.content) || "C",
+      };
+
+      setSongs([extractedSong]);
+      if (!massTitle) setMassTitle(extractedSong.title);
+      if (!massDate) setMassDate(new Date().toISOString().split("T")[0]);
+    } catch (err: any) {
+      setError(err.message || "Erro ao importar cifra pelo link.");
+    } finally {
+      setIsScrapingUrl(false);
+    }
+  };
+
   const updateSong = (id: string, field: keyof ExtractedSong, value: string) => {
     setSongs((prev) => prev.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
   };
@@ -594,6 +641,48 @@ export default function PdfImport() {
         </div>
 
         <div className="flex flex-col gap-4">
+          {/* Magic Link Importer (CifraClub URL) */}
+          <form
+            onSubmit={handleImportUrl}
+            className="p-4 rounded-2xl bg-gradient-to-r from-violet-50/90 to-indigo-50/80 dark:from-violet-950/40 dark:to-indigo-950/30 border border-violet-200/80 dark:border-violet-800/60 flex flex-col gap-2.5"
+          >
+            <label className="text-xs font-extrabold uppercase tracking-wider text-violet-800 dark:text-violet-300 flex items-center gap-1.5">
+              <span>✨ Importador Mágico por Link (CifraClub)</span>
+            </label>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input
+                type="url"
+                value={scrapeUrl}
+                onChange={(e) => setScrapeUrl(e.target.value)}
+                placeholder="https://www.cifraclub.com.br/artista/musica/"
+                className="flex-1 px-3.5 py-2.5 text-sm rounded-xl border border-violet-200 dark:border-violet-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              />
+              <button
+                type="submit"
+                disabled={isScrapingUrl || !scrapeUrl.trim()}
+                className="px-5 py-2.5 min-h-[42px] bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
+              >
+                {isScrapingUrl ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    <span>Importando...</span>
+                  </>
+                ) : (
+                  <span>Importar Link</span>
+                )}
+              </button>
+            </div>
+          </form>
+
+          <div className="flex items-center gap-3 text-xs text-slate-400 font-semibold uppercase tracking-wider">
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+            <span>ou envie arquivo PDF / Print</span>
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+          </div>
+
           {/* Dropzone */}
           <div
             onDragOver={handleDragOver}

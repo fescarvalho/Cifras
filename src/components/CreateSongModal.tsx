@@ -1,11 +1,179 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback, useMemo } from "react";
 import { LiturgicalPart, LiturgicalSeason } from "@/generated/prisma/client";
 import { PART_LABELS, SEASON_LABELS } from "@/utils/labels";
 import { createSong } from "@/app/actions";
 import { useOfflineSync } from "./OfflineSyncManager";
 import { db } from "@/lib/db-local";
+import { isChordLine } from "@/utils/chordTransposer";
+
+const EDITOR_SHARED_STYLE: React.CSSProperties = {
+  fontFamily:
+    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+  fontSize: "13.5px",
+  lineHeight: "1.6",
+  padding: "12px 14px",
+  margin: 0,
+  border: "none",
+  outline: "none",
+  whiteSpace: "pre-wrap",
+  overflowWrap: "anywhere",
+  wordBreak: "break-all",
+  tabSize: 2,
+  letterSpacing: 0,
+};
+
+function buildHighlightedLines(text: string): React.ReactNode {
+  const lines = (text.endsWith("\n") ? text : text + "\n").split("\n");
+
+  return lines.map((line, i) => {
+    const trimmed = line.replace(/[\u200B-\u200D\uFEFF\u2060]/g, "").trim();
+    const isLast = i === lines.length - 1;
+
+    if (!trimmed) {
+      return (
+        <span key={i} style={{ display: "block", minHeight: "1.6em" }}>
+          {isLast ? null : "\u00A0"}
+        </span>
+      );
+    }
+
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      return (
+        <span
+          key={i}
+          style={{
+            display: "block",
+            color: "#94a3b8",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            fontSize: "0.85em",
+          }}
+        >
+          {line + "\n"}
+        </span>
+      );
+    }
+
+    if (isChordLine(line)) {
+      const introMatch = line.match(
+        /^(\s*\[?(?:intro(?:du[cç][aã]o)?|final|solo|instrumental|interl[uú]dio|passagem|ponte|base)\]?[:.\-]*\s*)(.*)$/i
+      );
+      if (introMatch) {
+        return (
+          <span key={i} style={{ display: "block" }}>
+            <span style={{ color: "#94a3b8", fontWeight: 700 }}>{introMatch[1]}</span>
+            <span style={{ color: "#f97316", fontWeight: 700 }}>{introMatch[2] + "\n"}</span>
+          </span>
+        );
+      }
+
+      return (
+        <span
+          key={i}
+          style={{
+            display: "block",
+            color: "#f97316",
+            fontWeight: 700,
+          }}
+        >
+          {line + "\n"}
+        </span>
+      );
+    }
+
+    return (
+      <span key={i} style={{ display: "block", color: "#e2e8f0" }}>
+        {line + "\n"}
+      </span>
+    );
+  });
+}
+
+function ModalChordEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const preRef = useRef<HTMLPreElement>(null);
+
+  const handleScroll = useCallback(() => {
+    if (preRef.current && textareaRef.current) {
+      preRef.current.scrollTop = textareaRef.current.scrollTop;
+      preRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    }
+  }, []);
+
+  return (
+    <div
+      className="font-mono whitespace-pre-wrap focus-within:ring-2 focus-within:ring-violet-500 transition-all"
+      style={{
+        position: "relative",
+        borderRadius: "12px",
+        border: "1.5px solid #334155",
+        overflow: "hidden",
+        minHeight: "230px",
+        maxHeight: "340px",
+        background: "#020617",
+      }}
+    >
+      <pre
+        ref={preRef}
+        aria-hidden="true"
+        className="font-mono whitespace-pre-wrap"
+        style={{
+          ...EDITOR_SHARED_STYLE,
+          position: "absolute",
+          inset: 0,
+          overflow: "hidden",
+          pointerEvents: "none",
+          userSelect: "none",
+          background: "transparent",
+          zIndex: 1,
+        }}
+      >
+        {value ? (
+          buildHighlightedLines(value)
+        ) : (
+          <span style={{ color: "#64748b" }}>
+            {`[Intro] C  G/B  Am  F\n\n[Primeira Parte]\nC            G/B\nSenhor, meu Deus...`}
+          </span>
+        )}
+      </pre>
+
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onScroll={handleScroll}
+        spellCheck={false}
+        autoCapitalize="off"
+        autoCorrect="off"
+        required
+        className="font-mono whitespace-pre-wrap"
+        style={{
+          ...EDITOR_SHARED_STYLE,
+          position: "relative",
+          display: "block",
+          width: "100%",
+          minHeight: "230px",
+          maxHeight: "340px",
+          resize: "vertical",
+          background: "transparent",
+          color: "transparent",
+          caretColor: "#f8fafc",
+          zIndex: 2,
+          overflowY: "auto",
+        }}
+      />
+    </div>
+  );
+}
 
 interface CreateSongModalProps {
   onClose: () => void;
@@ -23,9 +191,54 @@ export default function CreateSongModal({ onClose, onSuccess }: CreateSongModalP
   const [referenceUrl, setReferenceUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isParsingPrint, setIsParsingPrint] = useState(false);
+  const [scrapeUrl, setScrapeUrl] = useState("");
+  const [isScrapingUrl, setIsScrapingUrl] = useState(false);
   const [printSuccessMessage, setPrintSuccessMessage] = useState("");
   const [error, setError] = useState("");
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const chordLineCount = useMemo(() => {
+    if (!content.trim()) return 0;
+    return content.split("\n").filter((l) => isChordLine(l)).length;
+  }, [content]);
+
+  const handleImportFromUrl = async () => {
+    const trimmedUrl = scrapeUrl.trim();
+    if (!trimmedUrl) {
+      setError("Cole um link válido do CifraClub para importar.");
+      return;
+    }
+    setError("");
+    setPrintSuccessMessage("");
+    setIsScrapingUrl(true);
+
+    try {
+      const res = await fetch("/api/scrape-cifra", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmedUrl }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Não foi possível importar a cifra deste link.");
+      }
+
+      if (data.title) setTitle(data.title);
+      if (data.artist && data.artist !== "Desconhecido") setArtist(data.artist);
+      if (data.key) setOriginalKey(data.key);
+      if (data.content) setContent(data.content);
+
+      setPrintSuccessMessage(
+        `Cifra importada pelo link com sucesso! (${data.title || "Música identificada"})`
+      );
+      setScrapeUrl("");
+    } catch (err: any) {
+      setError(err.message || "Falha ao importar link.");
+    } finally {
+      setIsScrapingUrl(false);
+    }
+  };
 
   const handleProcessPrintFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -134,7 +347,7 @@ export default function CreateSongModal({ onClose, onSuccess }: CreateSongModalP
           referenceUrl: referenceUrl || res.song.referenceUrl || null,
           createdAt: new Date(res.song.createdAt),
           updatedAt: new Date(res.song.updatedAt),
-          isSynced: true
+          isSynced: true,
         });
         onSuccess();
         onClose();
@@ -166,6 +379,36 @@ export default function CreateSongModal({ onClose, onSuccess }: CreateSongModalP
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4">
+          {/* Magic Link Import Box */}
+          <div className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/30 border border-violet-200/80 dark:border-violet-800/50 rounded-xl p-3.5 flex flex-col gap-2.5 shadow-xs">
+            <div className="text-xs font-bold text-violet-950 dark:text-violet-100 flex items-center gap-1.5">
+              <span>✨ Importar por Link (CifraClub)</span>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input
+                type="url"
+                value={scrapeUrl}
+                onChange={(e) => setScrapeUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleImportFromUrl();
+                  }
+                }}
+                placeholder="https://www.cifraclub.com.br/artista/musica/"
+                className="flex-1 px-3 py-2 text-xs sm:text-sm rounded-xl border border-violet-200 dark:border-violet-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              />
+              <button
+                type="button"
+                onClick={handleImportFromUrl}
+                disabled={isScrapingUrl || !scrapeUrl.trim()}
+                className="px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                {isScrapingUrl ? "Importando..." : "Importar Link"}
+              </button>
+            </div>
+          </div>
+
           {/* Quick Print Import Box */}
           <div className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/30 border border-violet-200/80 dark:border-violet-800/50 rounded-xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
             <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -319,22 +562,21 @@ export default function CreateSongModal({ onClose, onSuccess }: CreateSongModalP
           </div>
 
           <div className="flex flex-col gap-1.5 flex-1 min-h-[250px]">
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider pl-1 flex justify-between">
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider pl-1 flex flex-wrap items-center justify-between gap-2">
               <span>Cifra (Letras e Acordes) *</span>
-              <span className="text-[10px] text-slate-400 font-normal">Use fonte monospaçada para alinhar acordes</span>
+              <span className="flex items-center gap-2">
+                {chordLineCount > 0 ? (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/30 normal-case tracking-normal">
+                    ✓ {chordLineCount} {chordLineCount === 1 ? "linha de acordes identificada" : "linhas de acordes identificadas"}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-slate-400 font-normal">
+                    Acordes em <strong className="text-orange-400">laranja</strong> são destacados automaticamente
+                  </span>
+                )}
+              </span>
             </label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={`[Intro]
-C  G/B  Am  F
-
-[Estrofe 1]
-C            G/B
-Senhor, meu Deus...`}
-              className="flex-1 w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm font-mono whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-950 dark:text-slate-50 placeholder-slate-450 resize-none min-h-[200px]"
-              required
-            />
+            <ModalChordEditor value={content} onChange={setContent} />
           </div>
 
           {/* Footer buttons */}

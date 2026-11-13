@@ -47,7 +47,7 @@ const EDITOR_FONT: React.CSSProperties = {
 function buildHighlight(text: string): React.ReactNode {
   const lines = (text.endsWith("\n") ? text : text + "\n").split("\n");
   return lines.map((line, i) => {
-    const trimmed = line.trim();
+    const trimmed = line.replace(/[\u200B-\u200D\uFEFF\u2060]/g, "").trim();
     const isLast = i === lines.length - 1;
 
     if (!trimmed) {
@@ -66,11 +66,13 @@ function buildHighlight(text: string): React.ReactNode {
       );
     }
     if (isChordLine(line)) {
-      const introMatch = line.match(/^(\s*\[?(?:intro(?:du[cç][aã]o)?)\]?[:.\-]*\s*)(.*)$/i);
+      const introMatch = line.match(
+        /^(\s*\[?(?:intro(?:du[cç][aã]o)?|final|solo|instrumental|interl[uú]dio|passagem|ponte|base)\]?[:.\-]*\s*)(.*)$/i
+      );
       if (introMatch) {
         return (
           <span key={i} style={{ display: "block" }}>
-            <span style={{ color: "#e2e8f0" }}>{introMatch[1]}</span>
+            <span style={{ color: "#94a3b8", fontWeight: 700 }}>{introMatch[1]}</span>
             <span style={{ color: "#f97316", fontWeight: 700 }}>{introMatch[2] + "\n"}</span>
           </span>
         );
@@ -656,6 +658,19 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
               );
             }
             if (line.type === "chords") {
+              const introMatch = line.content.match(
+                /^(\s*\[?(?:intro(?:du[cç][aã]o)?|final|solo|instrumental|interl[uú]dio|passagem|ponte|base)\]?[:.\-]*\s*)(.*)$/i
+              );
+              if (introMatch) {
+                return (
+                  <div key={line.key} className="font-mono tracking-normal whitespace-pre-wrap leading-none pb-0.5 pt-1.5">
+                    <span className="text-slate-400 font-bold">{introMatch[1]}</span>
+                    <span className="font-bold text-orange-600 dark:text-orange-400">
+                      <InteractiveChords text={introMatch[2]} onChordTap={handleChordTap} />
+                    </span>
+                  </div>
+                );
+              }
               return (
                 <div key={line.key} className="font-mono tracking-normal font-bold text-orange-600 dark:text-orange-400 whitespace-pre-wrap leading-none pb-0.5 pt-1.5">
                   <InteractiveChords text={line.content} onChordTap={handleChordTap} />
@@ -1065,11 +1080,13 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
                 );
               }
               if (line.type === "chords") {
-                const introMatch = line.content.match(/^(\s*\[?(?:intro(?:du[cç][aã]o)?)\]?[:.\-]*\s*)(.*)$/i);
+                const introMatch = line.content.match(
+                  /^(\s*\[?(?:intro(?:du[cç][aã]o)?|final|solo|instrumental|interl[uú]dio|passagem|ponte|base)\]?[:.\-]*\s*)(.*)$/i
+                );
                 if (introMatch) {
                   return (
                     <div key={line.key} className="font-mono tracking-normal whitespace-pre-wrap leading-none pb-1 pt-2">
-                      <span className="text-slate-500 dark:text-slate-400 font-normal">{introMatch[1]}</span>
+                      <span className="text-slate-500 dark:text-slate-400 font-bold">{introMatch[1]}</span>
                       <span className="font-bold text-orange-600 dark:text-orange-400">
                         <InteractiveChords text={introMatch[2]} onChordTap={handleChordTap} />
                       </span>
