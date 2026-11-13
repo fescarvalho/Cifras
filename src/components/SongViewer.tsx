@@ -6,6 +6,7 @@ import { Song, Setlist } from "@/generated/prisma/client";
 import { transposeLine, getPreferredScale, isChordLine, isChordToken, sanitizePdfText, getSemitoneDifference, getTransposedKey } from "@/utils/chordTransposer";
 import { calculateSmartCapo } from "@/utils/smartCapo";
 import ChordPopover from "./ChordPopover";
+import CanvasOverlay from "./CanvasOverlay";
 import { PART_LABELS, PART_COLORS, SEASON_LABELS } from "@/utils/labels";
 import { addSongToSetlist, updateSongContent } from "@/app/actions";
 import { useOfflineSync } from "./OfflineSyncManager";
@@ -14,6 +15,7 @@ import { useScreenWakeLock } from "@/hooks/useScreenWakeLock";
 
 interface SongViewerProps {
   song: Song;
+  setlistSongId?: string | null;
   setlists?: Setlist[];
   onClose?: () => void;
   showBackButton?: boolean;
@@ -220,7 +222,7 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 // ─────────────────────────────────────────────────────────────────────────────
 // Main SongViewer
 // ─────────────────────────────────────────────────────────────────────────────
-export default function SongViewer({ song, setlists = [], onClose, showBackButton = false, performanceMode = false, semitones: externalSemitones, fontSize: externalFontSize, initialKey, onChangeKey, onNextSong, onPrevSong }: SongViewerProps) {
+export default function SongViewer({ song, setlistSongId = null, setlists = [], onClose, showBackButton = false, performanceMode = false, semitones: externalSemitones, fontSize: externalFontSize, initialKey, onChangeKey, onNextSong, onPrevSong }: SongViewerProps) {
   // Wake Lock for Repertoire view and Cipher display
   useScreenWakeLock();
 
@@ -234,6 +236,17 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
   const [selectedSetlistId, setSelectedSetlistId] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
+
+  // Pencil Mode ("Modo Lápis") state
+  const [isPencilMode, setIsPencilMode] = useState(false);
+  const [pencilColor, setPencilColor] = useState<string>("#facc15");
+  const [clearAnnotationSignal, setClearAnnotationSignal] = useState(0);
+  const [hasAnnotation, setHasAnnotation] = useState(false);
+  const annotationKey = setlistSongId || song.id;
+
+  useEffect(() => {
+    setIsPencilMode(false);
+  }, [song.id, setlistSongId]);
 
   // True original key edit state
   const [isEditingOriginalKey, setIsEditingOriginalKey] = useState(false);
@@ -598,11 +611,68 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
     error: "bg-rose-600 active:bg-rose-700 text-white",
   };
 
-  // ── Performance mode: just the chord sheet, with floating Capo bar ──
+  // ── Performance mode: just the chord sheet, with floating Capo & Pencil bar ──
   if (performanceMode) {
     return (
-      <div ref={scrollContainerRef} className="flex-1 h-full overflow-y-auto px-3 py-2">
-        <div className="sticky top-0 z-10 flex items-center justify-end gap-1.5 pointer-events-none">
+      <div
+        ref={scrollContainerRef}
+        className={`flex-1 h-full px-3 py-2 ${isPencilMode ? "overflow-hidden" : "overflow-y-auto"}`}
+        style={{ touchAction: isPencilMode ? "none" : "pan-y" }}
+      >
+        <div className="sticky top-0 z-20 flex flex-wrap items-center justify-end gap-1.5 pointer-events-none">
+          {/* Pencil Mode controls in Performance Mode */}
+          {isPencilMode && (
+            <>
+              <div className="pointer-events-auto flex items-center gap-1 px-2 py-1 rounded-xl backdrop-blur-md bg-slate-900/90 border border-white/15">
+                {[
+                  { color: "#facc15", label: "Amarelo Néon" },
+                  { color: "#f87171", label: "Vermelho Suave" },
+                ].map((opt) => (
+                  <button
+                    key={opt.color}
+                    type="button"
+                    onClick={() => setPencilColor(opt.color)}
+                    title={opt.label}
+                    className={`w-5 h-5 rounded-full transition-transform ${
+                      pencilColor === opt.color ? "scale-110 ring-2 ring-white" : "opacity-65"
+                    }`}
+                    style={{ backgroundColor: opt.color }}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setClearAnnotationSignal((s) => s + 1)}
+                className="pointer-events-auto text-[11px] font-bold px-2.5 py-1 rounded-xl backdrop-blur-md bg-rose-500/20 text-rose-300 border border-rose-400/35 active:scale-95 transition-all flex items-center gap-1"
+                title="Limpar Anotações"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span>Limpar Anotações</span>
+              </button>
+            </>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setIsPencilMode((v) => !v)}
+            className={`pointer-events-auto relative flex items-center gap-1.5 px-2.5 py-1 rounded-xl backdrop-blur-md border text-xs font-bold transition-all active:scale-95 ${
+              isPencilMode
+                ? "bg-amber-400 text-slate-950 border-amber-300 shadow-md shadow-amber-400/25"
+                : "bg-slate-900/80 text-slate-200 border-white/10"
+            }`}
+            title={isPencilMode ? "Desativar Modo Lápis (Salvar)" : "Ativar Modo Lápis"}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            <span>{isPencilMode ? "Lápis Ativo" : "Lápis"}</span>
+            {!isPencilMode && hasAnnotation && (
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
+            )}
+          </button>
+
           {/* Capo selector in Performance Mode */}
           <div className="pointer-events-auto flex items-center gap-1.5 px-2.5 py-1 rounded-xl backdrop-blur-md bg-slate-900/80 border border-white/10 text-xs">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Capo:</span>
@@ -641,13 +711,22 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -24 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          drag="x"
+          drag={isPencilMode ? false : "x"}
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.18}
           onDragEnd={handleSwipeDragEnd}
-          className="w-full font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto"
-          style={{ fontSize: `${fontSize}px`, touchAction: "pan-y" }}
+          className="relative w-full font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto"
+          style={{ fontSize: `${fontSize}px`, touchAction: isPencilMode ? "none" : "pan-y" }}
         >
+          <CanvasOverlay
+            annotationKey={annotationKey}
+            songId={song.id}
+            setlistSongId={setlistSongId}
+            isActive={isPencilMode}
+            strokeColor={pencilColor}
+            clearSignal={clearAnnotationSignal}
+            onAnnotationStateChange={setHasAnnotation}
+          />
           {renderedLines.map((line) => {
             if (line.type === "empty") return <div key={line.key} className="h-3" />;
             if (line.type === "header") {
@@ -762,9 +841,65 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
               </div>
             </div>
 
-            {/* Right: YouTube + Edit/Save */}
+            {/* Right: Pencil Mode + YouTube + Edit/Save */}
             <div className="flex items-center gap-1.5 shrink-0">
-              {song.referenceUrl && !isEditing && (
+              {!isEditing && isPencilMode && (
+                <>
+                  <div className="flex items-center gap-1 px-2 py-1 min-h-[38px] rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
+                    {[
+                      { color: "#facc15", label: "Amarelo Néon" },
+                      { color: "#f87171", label: "Vermelho Suave" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.color}
+                        type="button"
+                        onClick={() => setPencilColor(opt.color)}
+                        title={opt.label}
+                        className={`w-4 h-4 rounded-full transition-transform ${
+                          pencilColor === opt.color
+                            ? "scale-115 ring-2 ring-slate-900 dark:ring-white"
+                            : "opacity-60"
+                        }`}
+                        style={{ backgroundColor: opt.color }}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setClearAnnotationSignal((s) => s + 1)}
+                    className="flex items-center justify-center gap-1 min-h-[38px] px-2.5 py-1.5 text-xs font-bold rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 active:scale-95 transition-all"
+                    title="Limpar Anotações"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span className="hidden sm:inline">Limpar Anotações</span>
+                  </button>
+                </>
+              )}
+
+              {!isEditing && (
+                <button
+                  type="button"
+                  onClick={() => setIsPencilMode((v) => !v)}
+                  className={`relative flex items-center justify-center gap-1.5 min-h-[38px] px-3 py-1.5 text-xs font-bold rounded-xl border transition-all active:scale-95 shadow-sm ${
+                    isPencilMode
+                      ? "bg-amber-400 text-slate-950 border-amber-300 shadow-amber-400/25"
+                      : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200/80 dark:border-slate-700 active:bg-slate-100 dark:active:bg-slate-700"
+                  }`}
+                  title={isPencilMode ? "Desativar Modo Lápis e salvar anotações" : "Ativar Modo Lápis para desenhar na cifra"}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  <span className="hidden sm:inline">{isPencilMode ? "Lápis Ativo" : "Modo Lápis"}</span>
+                  {!isPencilMode && hasAnnotation && (
+                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  )}
+                </button>
+              )}
+
+              {song.referenceUrl && !isEditing && !isPencilMode && (
                 <a
                   href={song.referenceUrl}
                   target="_blank"
@@ -780,6 +915,7 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
               {!isEditing ? (
                 <button
                   onClick={() => { 
+                    setIsPencilMode(false);
                     setEditContent(song.content); 
                     setEditTitle(song.title);
                     setEditArtist(song.artist);
@@ -989,7 +1125,11 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
       </div>
 
       {/* ── Main content area ── */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-6 md:py-10">
+      <div
+        ref={scrollContainerRef}
+        className={`flex-1 px-4 py-6 md:py-10 ${isPencilMode ? "overflow-hidden" : "overflow-y-auto"}`}
+        style={{ touchAction: isPencilMode ? "none" : "pan-y" }}
+      >
 
         {isEditing ? (
           /* ── Edit Mode ── */
@@ -1063,13 +1203,22 @@ export default function SongViewer({ song, setlists = [], onClose, showBackButto
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -24 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            drag={onNextSong || onPrevSong ? "x" : false}
+            drag={!isPencilMode && (onNextSong || onPrevSong) ? "x" : false}
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.18}
             onDragEnd={handleSwipeDragEnd}
-            className="max-w-4xl w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 md:p-10 shadow-sm font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto"
-            style={{ fontSize: `${fontSize}px`, touchAction: "pan-y" }}
+            className="relative max-w-4xl w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 md:p-10 shadow-sm font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto"
+            style={{ fontSize: `${fontSize}px`, touchAction: isPencilMode ? "none" : "pan-y" }}
           >
+            <CanvasOverlay
+              annotationKey={annotationKey}
+              songId={song.id}
+              setlistSongId={setlistSongId}
+              isActive={isPencilMode}
+              strokeColor={pencilColor}
+              clearSignal={clearAnnotationSignal}
+              onAnnotationStateChange={setHasAnnotation}
+            />
             {renderedLines.map((line) => {
               if (line.type === "empty") return <div key={line.key} className="h-4" />;
               if (line.type === "header") {

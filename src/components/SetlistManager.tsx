@@ -512,6 +512,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
             <SongViewer
               key={currentSong.id}
               song={currentSong}
+              setlistSongId={currentSetlistSong.id}
               performanceMode
               initialKey={currentSetlistSong.selectedKey || currentSong.originalKey}
               onChangeKey={(newKey) => handleKeyChange(currentSetlistSong.songId, newKey)}
@@ -793,6 +794,7 @@ export default function SetlistManager({ setlistId, onClose, onRefreshSetlists, 
             <SongViewer
               key={selectedSetlistSong.song.id}
               song={selectedSetlistSong.song}
+              setlistSongId={selectedSetlistSong.id}
               initialKey={selectedSetlistSong.selectedKey || selectedSetlistSong.song.originalKey}
               onChangeKey={(newKey) => handleKeyChange(selectedSetlistSong.songId, newKey)}
               onNextSong={handleNextModalSong}

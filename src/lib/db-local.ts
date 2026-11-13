@@ -13,6 +13,7 @@ export interface LocalSong {
   createdAt: Date;
   updatedAt: Date;
   isSynced: boolean;
+  annotationDataUrl?: string | null;
 }
 
 export interface LocalSetlistSong {
@@ -22,6 +23,7 @@ export interface LocalSetlistSong {
   order: number;
   selectedKey?: string | null;
   song: LocalSong;
+  annotationDataUrl?: string | null;
 }
 
 export interface LocalSetlist {
@@ -34,7 +36,23 @@ export interface LocalSetlist {
   isSynced: boolean;
 }
 
-export type SyncAction = 'CREATE_SETLIST' | 'UPDATE_SETLIST_ORDER' | 'REMOVE_SONG_FROM_SETLIST' | 'ADD_SONG_TO_SETLIST' | 'DELETE_SETLIST' | 'CREATE_SONG' | 'UPDATE_SETLIST_SONG_KEY' | 'UPDATE_SONG_CONTENT';
+export interface LocalAnnotation {
+  id: string; // setlistSong.id or song.id
+  songId: string;
+  setlistSongId?: string | null;
+  dataUrl: string;
+  updatedAt: Date;
+}
+
+export type SyncAction =
+  | 'CREATE_SETLIST'
+  | 'UPDATE_SETLIST_ORDER'
+  | 'REMOVE_SONG_FROM_SETLIST'
+  | 'ADD_SONG_TO_SETLIST'
+  | 'DELETE_SETLIST'
+  | 'CREATE_SONG'
+  | 'UPDATE_SETLIST_SONG_KEY'
+  | 'UPDATE_SONG_CONTENT';
 
 export interface SyncOperation {
   id?: number; // Auto-incremented by Dexie
@@ -47,13 +65,21 @@ const db = new Dexie('CifrasAppDB') as Dexie & {
   songs: EntityTable<LocalSong, 'id'>;
   setlists: EntityTable<LocalSetlist, 'id'>;
   syncQueue: EntityTable<SyncOperation, 'id'>;
+  annotations: EntityTable<LocalAnnotation, 'id'>;
 };
 
 // Schema declaration:
 db.version(2).stores({
   songs: 'id, title, artist, part, season', // Primary key and indexed props
-  setlists: 'id, date', 
-  syncQueue: '++id, action, createdAt'
+  setlists: 'id, date',
+  syncQueue: '++id, action, createdAt',
+});
+
+db.version(3).stores({
+  songs: 'id, title, artist, part, season',
+  setlists: 'id, date',
+  syncQueue: '++id, action, createdAt',
+  annotations: 'id, songId, setlistSongId, updatedAt',
 });
 
 export { db };
